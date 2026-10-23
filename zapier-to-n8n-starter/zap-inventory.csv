@@ -1,0 +1,2 @@
+zap_name,trigger_app,trigger_event,steps,apps_touched,runs_per_month,owner,breaks_often,decision,notes
+Example: new form lead to CRM,Typeform,New entry,4,Typeform; HubSpot; Slack,,,no,move,

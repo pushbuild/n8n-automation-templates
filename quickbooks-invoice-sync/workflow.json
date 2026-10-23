@@ -1,0 +1,425 @@
+{
+  "name": "Job completed to QuickBooks invoice, no duplicates (Pushbuild template)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "job-completed",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "8bb163c4-a7a1-5384-a82c-df764b3eb04a",
+      "name": "Job completed (webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "52bfc183-2a2e-55f9-ba1f-ef507adf8fc3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fd99e9d1-4a07-50df-8aa4-b465b755f9a2",
+              "name": "qbo_base_url",
+              "value": "https://sandbox-quickbooks.api.intuit.com",
+              "type": "string"
+            },
+            {
+              "id": "dee5def1-0c68-5bdd-b47e-629ddca59996",
+              "name": "realm_id",
+              "value": "REPLACE_WITH_COMPANY_ID",
+              "type": "string"
+            },
+            {
+              "id": "8b9ef5f5-a86a-5107-9a4f-eca7abfd07ef",
+              "name": "default_item_id",
+              "value": "1",
+              "type": "string"
+            },
+            {
+              "id": "811c8373-3713-5ca6-a9ce-fa671b916cb1",
+              "name": "slack_webhook_url",
+              "value": "https://hooks.slack.com/services/REPLACE_ME",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {},
+        "includeOtherFields": true
+      },
+      "id": "1722225e-f11a-546c-8205-e713ab6dbc48",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Map your job, order or CRM fields here. One item per job.\nreturn $input.all().map(i => {\n  const b = i.json.body || i.json;\n  return { json: {\n    job_id: String(b.job_id || b.id || ''),\n    customer_name: (b.customer_name || b.customer || '').trim(),\n    customer_email: (b.customer_email || b.email || '').trim(),\n    lines: (b.lines || [{ description: b.description || 'Services', qty: 1, rate: Number(b.amount) || 0 }]),\n  } };\n});"
+      },
+      "id": "73f2a141-5463-5f6c-94d6-82850b9f80d2",
+      "name": "Normalize job",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.qbo_base_url }}/v3/company/{{ $('Config').first().json.realm_id }}/query",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "=select Id from Invoice where DocNumber = '{{ $json.job_id.replace(/'/g, \"\\\\'\") }}'"
+            },
+            {
+              "name": "minorversion",
+              "value": "73"
+            }
+          ]
+        }
+      },
+      "id": "fd1a0bfa-9b59-5a4d-918e-c9b9464063d0",
+      "name": "Find invoice by job number",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "17267a44-58eb-55c7-ac3a-bb6d1001389d",
+              "leftValue": "={{ ($json.QueryResponse.Invoice || []).length }}",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              },
+              "rightValue": 0
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f02a8cf3-2483-5647-aea0-ba3f0eae902a",
+      "name": "Already invoiced?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.slack_webhook_url }}",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `Skipped job ${$('Normalize job').item.json.job_id}: already invoiced in QuickBooks.` }) }}"
+      },
+      "id": "d4b9135d-b4ef-5c02-bc83-8eb10204a6e9",
+      "name": "Skip duplicate (Slack)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.qbo_base_url }}/v3/company/{{ $('Config').first().json.realm_id }}/query",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "=select Id from Customer where DisplayName = '{{ $('Normalize job').item.json.customer_name.replace(/'/g, \"\\\\'\") }}'"
+            },
+            {
+              "name": "minorversion",
+              "value": "73"
+            }
+          ]
+        }
+      },
+      "id": "c864c9fc-f49e-522f-9c50-f978a70efe70",
+      "name": "Find customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "69f9b522-d346-55a6-9769-f67621c7cbb9",
+              "leftValue": "={{ ($json.QueryResponse.Customer || []).length }}",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              },
+              "rightValue": 0
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c1d1929d-75d8-5529-a810-7daec637f689",
+      "name": "Customer exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.qbo_base_url }}/v3/company/{{ $('Config').first().json.realm_id }}/customer?minorversion=73",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ DisplayName: $('Normalize job').item.json.customer_name, PrimaryEmailAddr: { Address: $('Normalize job').item.json.customer_email } }) }}"
+      },
+      "id": "19147db6-247b-562b-aab1-4c520270323c",
+      "name": "Create customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const job = $('Normalize job').item.json;\nconst cfg = $('Config').first().json;\nconst id = ($json.QueryResponse && $json.QueryResponse.Customer) ? $json.QueryResponse.Customer[0].Id : $json.Customer.Id;\nconst invoice = {\n  DocNumber: job.job_id,\n  CustomerRef: { value: id },\n  BillEmail: job.customer_email ? { Address: job.customer_email } : undefined,\n  Line: job.lines.map(l => ({\n    DetailType: 'SalesItemLineDetail',\n    Amount: Math.round(Number(l.qty) * Number(l.rate) * 100) / 100,\n    Description: l.description,\n    SalesItemLineDetail: { ItemRef: { value: l.item_id || cfg.default_item_id }, Qty: Number(l.qty), UnitPrice: Number(l.rate) },\n  })),\n};\nreturn { json: { invoice } };"
+      },
+      "id": "1576d5ec-d4ff-501c-aa16-3d1f444f1679",
+      "name": "Build invoice",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.qbo_base_url }}/v3/company/{{ $('Config').first().json.realm_id }}/invoice?minorversion=73",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "quickBooksOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.invoice) }}"
+      },
+      "id": "5325c6ab-78d4-521e-8a90-de21e0b1c595",
+      "name": "Create invoice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.slack_webhook_url }}",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `Invoice ${$json.Invoice.DocNumber} created in QuickBooks for ${$('Normalize job').item.json.customer_name}.` }) }}"
+      },
+      "id": "3aca4d7e-6d57-5fd9-b75d-5e06260182fe",
+      "name": "Report (Slack)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Job completed (webhook)": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Normalize job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize job": {
+      "main": [
+        [
+          {
+            "node": "Find invoice by job number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find invoice by job number": {
+      "main": [
+        [
+          {
+            "node": "Already invoiced?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Already invoiced?": {
+      "main": [
+        [
+          {
+            "node": "Skip duplicate (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Find customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find customer": {
+      "main": [
+        [
+          {
+            "node": "Customer exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer exists?": {
+      "main": [
+        [
+          {
+            "node": "Build invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create customer": {
+      "main": [
+        [
+          {
+            "node": "Build invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build invoice": {
+      "main": [
+        [
+          {
+            "node": "Create invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create invoice": {
+      "main": [
+        [
+          {
+            "node": "Report (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

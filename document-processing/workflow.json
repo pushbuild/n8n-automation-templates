@@ -1,0 +1,221 @@
+{
+  "name": "Email attachment to Google Sheet: read invoices and documents (Pushbuild template)",
+  "nodes": [
+    {
+      "parameters": {
+        "format": "simple",
+        "downloadAttachments": true,
+        "options": {}
+      },
+      "id": "e1d9f27a-b6da-5e50-9f5c-b2b64beccdf8",
+      "name": "New email (IMAP)",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "2c716e91-05a8-53b4-946d-36070b74a5b8",
+              "leftValue": "={{ $binary.attachment_0 ? $binary.attachment_0.mimeType : '' }}",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "rightValue": "pdf"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "efe227aa-0b6f-50c6-81c9-fe599e40c9f0",
+      "name": "Has PDF?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "attachment_0",
+        "options": {}
+      },
+      "id": "492178d8-cd3b-5953-8681-a26d0eadde08",
+      "name": "Extract PDF text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        660,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Settings: the model and the fields to pull out of each document.\nconst cfg = { openai_model: 'gpt-4o-mini', fields: 'supplier, invoice_number, invoice_date, due_date, subtotal, tax, total, currency' };\nconst mail = $('New email (IMAP)').item.json;\nconst text = String($json.text || '').slice(0, 15000);\nconst request = {\n  model: cfg.openai_model,\n  response_format: { type: 'json_object' },\n  messages: [\n    { role: 'system', content: `Extract these fields from the document text: ${cfg.fields}. Reply with JSON using exactly those keys. Use null for anything not present. Dates as YYYY-MM-DD, numbers without currency symbols. Add \"confidence\": \"high\" | \"low\".` },\n    { role: 'user', content: text },\n  ],\n};\nreturn { json: { request, from: mail.from, subject: mail.subject, received: mail.date, file: $('New email (IMAP)').item.binary.attachment_0.fileName } };"
+      },
+      "id": "26b5ce5a-ecf1-5b9c-8625-aaad84b497e4",
+      "name": "Build extraction request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}"
+      },
+      "id": "35340d44-66b8-58b0-8f12-0b448cd51422",
+      "name": "Extract fields (OpenAI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const meta = $('Build extraction request').item.json;\nlet f = {};\ntry { f = JSON.parse($json.choices[0].message.content); } catch (e) { f = { confidence: 'low' }; }\n// Send to review when unsure, or when subtotal + tax does not equal total.\nconst sum = Number(f.subtotal || 0) + Number(f.tax || 0);\nconst totalsOk = !f.total || !f.subtotal || Math.abs(sum - Number(f.total)) < 0.02;\nconst review = f.confidence !== 'high' || !totalsOk ? 'CHECK' : 'ok';\nconst { confidence, ...fields } = f;\nreturn { json: { received: meta.received, from: meta.from, subject: meta.subject, file: meta.file, ...fields, review } };"
+      },
+      "id": "a5934684-81ef-5ab1-b296-1e0b49e6a667",
+      "name": "Check and flag",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/REPLACE_ME/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Documents"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "c8da0ca5-9140-5c80-ba93-9a55ca33f400",
+      "name": "Append to sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1540,
+        280
+      ]
+    }
+  ],
+  "connections": {
+    "New email (IMAP)": {
+      "main": [
+        [
+          {
+            "node": "Has PDF?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has PDF?": {
+      "main": [
+        [
+          {
+            "node": "Extract PDF text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PDF text": {
+      "main": [
+        [
+          {
+            "node": "Build extraction request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build extraction request": {
+      "main": [
+        [
+          {
+            "node": "Extract fields (OpenAI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract fields (OpenAI)": {
+      "main": [
+        [
+          {
+            "node": "Check and flag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check and flag": {
+      "main": [
+        [
+          {
+            "node": "Append to sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

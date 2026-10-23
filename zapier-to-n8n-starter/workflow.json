@@ -1,0 +1,170 @@
+{
+  "name": "Zap replacement starter: hook, filter, format, action (Pushbuild template)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "zap-replacement",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "ce1bcdb9-2a9e-5895-91f4-82746c317114",
+      "name": "Catch hook (was: Webhooks by Zapier)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "f30431b2-cf69-5699-acb1-437d69941e6d"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c3be7f19-2dd2-5c7c-afed-309fbcab72c8",
+              "name": "action_url",
+              "value": "https://example.com/api/endpoint",
+              "type": "string"
+            },
+            {
+              "id": "811c8373-3713-5ca6-a9ce-fa671b916cb1",
+              "name": "slack_webhook_url",
+              "value": "https://hooks.slack.com/services/REPLACE_ME",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {},
+        "includeOtherFields": true
+      },
+      "id": "10ebb1fb-9c5b-5b55-a400-90b63395f194",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Replace each Formatter step with a line here: text case, dates, numbers, lookups.\nconst b = $json.body || $json;\nreturn { json: {\n  email: String(b.email || '').trim().toLowerCase(),\n  name: String(b.name || '').trim().replace(/\\b\\w/g, c => c.toUpperCase()),\n  amount: Number(String(b.amount || '0').replace(/[^0-9.-]/g, '')),\n  date: b.date ? new Date(b.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),\n  raw: b,\n} };"
+      },
+      "id": "0fe87be1-d0cc-531c-ae3a-39defd5fca92",
+      "name": "Formatter (was: Formatter by Zapier)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "9a371c65-6712-569a-b82d-745517d37fb3",
+              "leftValue": "={{ $json.email }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ca0e897a-adae-5db4-aeaa-01aafe51e1cf",
+      "name": "Filter (was: Filter by Zapier)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.action_url }}",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ email: $json.email, name: $json.name, amount: $json.amount, date: $json.date }) }}"
+      },
+      "id": "9b0fdc03-a9ec-5fc5-8411-c2813386d43c",
+      "name": "Action (any API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        280
+      ]
+    }
+  ],
+  "connections": {
+    "Catch hook (was: Webhooks by Zapier)": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Formatter (was: Formatter by Zapier)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatter (was: Formatter by Zapier)": {
+      "main": [
+        [
+          {
+            "node": "Filter (was: Filter by Zapier)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter (was: Filter by Zapier)": {
+      "main": [
+        [
+          {
+            "node": "Action (any API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

@@ -1,0 +1,303 @@
+{
+  "name": "Lead follow-up: score, reply, CRM, alert (Pushbuild template)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-lead",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "e7eb7bce-dd35-531e-a72e-ccac289520ab",
+      "name": "New lead (webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "42bbf350-5d6b-5387-9d02-dd092fdfbe10"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "811c8373-3713-5ca6-a9ce-fa671b916cb1",
+              "name": "slack_webhook_url",
+              "value": "https://hooks.slack.com/services/REPLACE_ME",
+              "type": "string"
+            },
+            {
+              "id": "dc473015-8960-5842-bd43-8a56a1804395",
+              "name": "from_email",
+              "value": "hello@yourbusiness.com",
+              "type": "string"
+            },
+            {
+              "id": "689b73e3-19c4-54aa-9cde-8983f5460054",
+              "name": "business_name",
+              "value": "Your Business",
+              "type": "string"
+            },
+            {
+              "id": "4d3eba33-9893-58da-b6db-806ccf3241b7",
+              "name": "booking_link",
+              "value": "https://yourbusiness.com/book",
+              "type": "string"
+            },
+            {
+              "id": "bff052bd-f6f1-5463-ad7a-6ae6ba16b61d",
+              "name": "hot_lead_score",
+              "value": 7,
+              "type": "number"
+            },
+            {
+              "id": "fa80ac12-95f3-5926-abf5-73edafc2f27d",
+              "name": "openai_model",
+              "value": "gpt-4o-mini",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {},
+        "includeOtherFields": true
+      },
+      "id": "58984ddc-bdef-51d9-b63a-dded77f7f24f",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Map your form's fields here. Works with most form tools that POST JSON.\nconst cfg = $('Config').first().json;\nreturn $input.all().map(i => {\n  const b = i.json.body || i.json;\n  const lead = {\n    name: (b.name || [b.first_name, b.last_name].filter(Boolean).join(' ') || '').trim(),\n    email: (b.email || '').trim().toLowerCase(),\n    phone: (b.phone || '').trim(),\n    company: (b.company || '').trim(),\n    message: (b.message || b.notes || '').trim(),\n    source: b.source || 'website form',\n  };\n  const request = {\n    model: cfg.openai_model,\n    response_format: { type: 'json_object' },\n    messages: [\n      { role: 'system', content: `You qualify inbound leads for ${cfg.business_name}. Reply with JSON: {\"score\": 1-10, \"reason\": \"one sentence\", \"summary\": \"one sentence\"}. 10 = ready to buy, clear need, good fit. 1 = spam or no fit.` },\n      { role: 'user', content: JSON.stringify(lead) },\n    ],\n  };\n  return { json: { ...lead, request } };\n});"
+      },
+      "id": "4101fe72-a581-5326-b109-be31d5a74cb7",
+      "name": "Normalize lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}"
+      },
+      "id": "3dfe838b-a81c-5c6a-8a0c-fad540f52a5c",
+      "name": "Score lead (OpenAI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const lead = $('Normalize lead').item.json;\nlet s = { score: 0, reason: 'could not score', summary: '' };\ntry { s = JSON.parse($json.choices[0].message.content); } catch (e) {}\nconst { request, ...rest } = lead;\nreturn { json: { ...rest, score: Number(s.score) || 0, reason: s.reason, summary: s.summary } };"
+      },
+      "id": "cc6ebe98-2bf2-5dd3-8412-1321073edab9",
+      "name": "Read score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').first().json.from_email }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "=Thanks, {{ $json.name.split(' ')[0] || 'there' }}. We got your message",
+        "emailFormat": "text",
+        "text": "=Hi {{ $json.name.split(' ')[0] || 'there' }},\n\nThanks for getting in touch with {{ $('Config').first().json.business_name }}. We will reply within one business day. If it is easier, you can pick a time to talk here: {{ $('Config').first().json.booking_link }}\n\n{{ $('Config').first().json.business_name }}",
+        "options": {}
+      },
+      "id": "3d34b3b4-a707-57d6-92e5-1f267f8abc3c",
+      "name": "Reply to lead",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/contacts/batch/upsert",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ inputs: [{ idProperty: 'email', id: $('Read score').item.json.email, properties: { email: $('Read score').item.json.email, firstname: $('Read score').item.json.name.split(' ')[0], lastname: $('Read score').item.json.name.split(' ').slice(1).join(' '), phone: $('Read score').item.json.phone, company: $('Read score').item.json.company, hs_lead_status: 'NEW' } }] }) }}"
+      },
+      "id": "95d2bfb5-ae94-54e8-a817-411fe88e9f05",
+      "name": "Upsert contact (HubSpot)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "47f8a615-54c8-5800-8a16-a268b3332ca2",
+              "leftValue": "={{ $('Read score').item.json.score }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              },
+              "rightValue": "={{ $('Config').first().json.hot_lead_score }}"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "95289104-c18b-56fe-876a-5849d9a9764b",
+      "name": "Hot lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.slack_webhook_url }}",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `New hot lead (${$('Read score').item.json.score}/10): ${$('Read score').item.json.name} <${$('Read score').item.json.email}> from ${$('Read score').item.json.source}. ${$('Read score').item.json.summary}` }) }}"
+      },
+      "id": "0230c521-2157-59ac-a355-8f8e93f3d627",
+      "name": "Alert sales (Slack)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        380
+      ]
+    }
+  ],
+  "connections": {
+    "New lead (webhook)": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Normalize lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize lead": {
+      "main": [
+        [
+          {
+            "node": "Score lead (OpenAI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score lead (OpenAI)": {
+      "main": [
+        [
+          {
+            "node": "Read score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read score": {
+      "main": [
+        [
+          {
+            "node": "Reply to lead",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Upsert contact (HubSpot)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert contact (HubSpot)": {
+      "main": [
+        [
+          {
+            "node": "Hot lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hot lead?": {
+      "main": [
+        [
+          {
+            "node": "Alert sales (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

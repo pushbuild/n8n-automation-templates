@@ -1,0 +1,159 @@
+{
+  "name": "Shopify paid order to fulfilment team notice (Pushbuild template)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shopify-order-paid",
+        "responseMode": "onReceived",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "ce867433-a687-58da-860c-d1df2024deb6",
+      "name": "Order paid (Shopify webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "3b0025b0-23d0-5d7b-aa38-1cc94a152737"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verifies Shopify's HMAC signature, then builds a pick list.\n// Needs NODE_FUNCTION_ALLOW_BUILTIN=crypto in your n8n environment.\nconst crypto = require('crypto');\n// Settings\nconst cfg = {\n  shopify_webhook_secret: 'REPLACE_WITH_WEBHOOK_SIGNING_SECRET',\n  fulfilment_email: 'warehouse@yourbusiness.com',\n  from_email: 'orders@yourbusiness.com',\n  slack_webhook_url: 'https://hooks.slack.com/services/REPLACE_ME',\n};\nconst out = [];\nfor (let i = 0; i < $input.all().length; i++) {\n  const item = $input.all()[i];\n  const raw = await this.helpers.getBinaryDataBuffer(i, 'data');\n  const sent = (item.json.headers || {})['x-shopify-hmac-sha256'] || '';\n  const calc = crypto.createHmac('sha256', cfg.shopify_webhook_secret).update(raw).digest('base64');\n  const valid = sent.length === calc.length && crypto.timingSafeEqual(Buffer.from(sent), Buffer.from(calc));\n  const o = item.json.body && item.json.body.id ? item.json.body : JSON.parse(raw.toString('utf8'));\n  const a = o.shipping_address || {};\n  const lines = (o.line_items || []).map(l => `${l.quantity} x ${l.sku || '-'}  ${l.title}${l.variant_title ? ' (' + l.variant_title + ')' : ''}`);\n  out.push({ json: {\n    valid,\n    fulfilment_email: cfg.fulfilment_email, from_email: cfg.from_email, slack_webhook_url: cfg.slack_webhook_url,\n    order: o.name,\n    customer: [a.first_name, a.last_name].filter(Boolean).join(' '),\n    ship_to: [a.address1, a.address2, a.city, a.province_code, a.zip, a.country_code].filter(Boolean).join(', '),\n    shipping: (o.shipping_lines || []).map(s => s.title).join(', ') || 'standard',\n    note: o.note || '',\n    pick_list: lines.join('\\n'),\n    items: lines.length,\n  } });\n}\nreturn out;"
+      },
+      "id": "d3fcb829-8a97-5433-b365-91757cfe4357",
+      "name": "Verify and build pick list",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "acf9b097-f98f-5a61-a73b-1a9b463ba7d8",
+              "leftValue": "={{ $json.valid }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3acebd0e-49ac-5d79-a931-cf771cea4561",
+      "name": "Signature valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $json.from_email }}",
+        "toEmail": "={{ $json.fulfilment_email }}",
+        "subject": "=Pick and pack: order {{ $json.order }} ({{ $json.items }} lines, {{ $json.shipping }})",
+        "emailFormat": "text",
+        "text": "=Order {{ $json.order }}\nShip to: {{ $json.customer }}, {{ $json.ship_to }}\nShipping: {{ $json.shipping }}\n\n{{ $json.pick_list }}\n\nNote: {{ $json.note || 'none' }}",
+        "options": {}
+      },
+      "id": "db8b010b-6d6b-5f63-a683-9b666ebd6549",
+      "name": "Email fulfilment team",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Verify and build pick list').item.json.slack_webhook_url }}",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `Order ${$('Verify and build pick list').item.json.order} sent to fulfilment (${$('Verify and build pick list').item.json.items} lines, ${$('Verify and build pick list').item.json.shipping}).` }) }}"
+      },
+      "id": "e039c56f-033a-5b72-a40c-5d7bd422432e",
+      "name": "Post to Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Order paid (Shopify webhook)": {
+      "main": [
+        [
+          {
+            "node": "Verify and build pick list",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify and build pick list": {
+      "main": [
+        [
+          {
+            "node": "Signature valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signature valid?": {
+      "main": [
+        [
+          {
+            "node": "Email fulfilment team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email fulfilment team": {
+      "main": [
+        [
+          {
+            "node": "Post to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

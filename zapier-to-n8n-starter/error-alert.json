@@ -1,0 +1,55 @@
+{
+  "name": "Error alert for all workflows (Pushbuild template)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a2ffd1e9-1010-53af-a2ec-83158f9d8239",
+      "name": "When any workflow fails",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/REPLACE_ME",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: `Workflow failed: ${$json.workflow.name}. Node: ${$json.execution.lastNodeExecuted}. Error: ${$json.execution.error.message}. ${$json.execution.url || ''}` }) }}"
+      },
+      "id": "0114c939-4e0f-59dc-968a-90d77dac25d2",
+      "name": "Alert (Slack)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When any workflow fails": {
+      "main": [
+        [
+          {
+            "node": "Alert (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
