@@ -286,6 +286,86 @@
         2200,
         400
       ]
+    },
+    {
+      "parameters": {
+        "content": "## Job completed \u2192 QuickBooks invoice (no duplicates)\nWhen a job is marked complete, create the QuickBooks Online invoice \u2014 checking first that the same job number hasn't already been invoiced, and creating the customer if new.\n\n**What you need:** n8n \u2022 QuickBooks Online company + Intuit developer app (OAuth2) \u2022 Slack incoming webhook\n\n**Setup**\n1. Create a **QuickBooks Online OAuth2 API** credential and select it on the four QuickBooks steps.\n2. In **Config** set `realm_id`, `default_item_id`, the Slack URL; keep `qbo_base_url` on sandbox to start.\n3. Point your job/CRM/order webhook at **Job completed**; the expected body is shown in **Normalize job**.\n4. Test against a sandbox company, verify the invoices, then switch `qbo_base_url` to production.\n\nNo credentials are bundled \u2014 every `REPLACE_ME` must be set before activating.\nGuide: pushbuild.com/guides/quickbooks-automation.html",
+        "height": 340,
+        "width": 2240,
+        "color": 7
+      },
+      "id": "89f49998-436b-4a9f-a710-901b6aad54a6",
+      "name": "Sticky Note ad19a0",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 1 \u00b7 Receive job\nWebhook payload (job id, customer, email, lines) \u2192 **Config** \u2192 **Normalize job**.",
+        "height": 170,
+        "width": 640,
+        "color": 5
+      },
+      "id": "fbeef344-d70b-4276-b39b-236a59eaff4e",
+      "name": "Sticky Note 215914",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 2 \u00b7 Dedupe by job number\nLooks up an invoice whose DocNumber matches the job id; if it exists, Slacks a note and stops.",
+        "height": 170,
+        "width": 640,
+        "color": 4
+      },
+      "id": "1ad409c8-0139-44cc-ab69-4c36ff642738",
+      "name": "Sticky Note 7a398f",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        640,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 3 \u00b7 Customer upsert\nMatches the customer by display name, or creates them.",
+        "height": 170,
+        "width": 440,
+        "color": 6
+      },
+      "id": "15f2f6ac-f5cb-4232-a388-219288750c34",
+      "name": "Sticky Note 57bdf8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 4 \u00b7 Build & create invoice\nBuilds the lines (item/qty/rate), posts the invoice, Slacks the new number.",
+        "height": 170,
+        "width": 680,
+        "color": 3
+      },
+      "id": "09394d04-5417-4334-ab62-5eed11273866",
+      "name": "Sticky Note 97d8d1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        40
+      ]
     }
   ],
   "connections": {

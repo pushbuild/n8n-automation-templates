@@ -100,6 +100,54 @@
         1100,
         200
       ]
+    },
+    {
+      "parameters": {
+        "content": "## Shopify paid order \u2192 fulfilment notice\nWhen a Shopify order is paid, verify the HMAC signature, build a pick list (SKUs, quantities, ship-to, shipping method), email it to your warehouse/3PL and post a note to Slack.\n\n**What you need:** n8n with `NODE_FUNCTION_ALLOW_BUILTIN=crypto` \u2022 Shopify store admin \u2022 SMTP \u2022 Slack incoming webhook\n\n**Setup**\n1. Set `NODE_FUNCTION_ALLOW_BUILTIN=crypto` on your n8n instance and restart.\n2. Shopify admin \u2192 **Settings \u2192 Notifications \u2192 Webhooks** \u2192 create an **Order payment** (JSON) webhook pointing at **Order paid**'s production URL.\n3. Paste the signing secret + your fulfilment/from addresses + Slack URL into the settings block atop **Verify and build pick list**.\n4. Add your SMTP credential to **Email fulfilment team**, activate, send a Shopify test.\n\nNo credentials are bundled \u2014 every `REPLACE_ME` must be set before activating.\nGuide: pushbuild.com/guides/shopify-automation.html",
+        "height": 300,
+        "width": 1200,
+        "color": 7
+      },
+      "id": "c57ecbf9-6b8e-4bad-aae1-8c2189534d6d",
+      "name": "Sticky Note 3e2200",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 1 \u00b7 Receive & verify\nWebhook receives the paid order; **Verify and build pick list** checks the HMAC signature and assembles the pick list; anything unsigned is dropped.",
+        "height": 180,
+        "width": 740,
+        "color": 5
+      },
+      "id": "4ef4b84c-d054-49b3-9635-594b9fa1a484",
+      "name": "Sticky Note fb2119",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 2 \u00b7 Notify\nEmails the pick list to fulfilment and posts the order number + line count to Slack.",
+        "height": 180,
+        "width": 420,
+        "color": 6
+      },
+      "id": "596fc49d-4932-4e3c-867d-0b1e4694775e",
+      "name": "Sticky Note 4f6adf",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        820,
+        80
+      ]
     }
   ],
   "connections": {
