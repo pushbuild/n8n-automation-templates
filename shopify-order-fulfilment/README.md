@@ -1,43 +1,31 @@
-# Shopify paid order to fulfilment notice
+# Shopify paid order to warehouse pick list
 
-When a Shopify order is paid, this workflow checks Shopify's signature, builds a pick list with SKUs, quantities, ship-to address and shipping method, emails it to your warehouse or 3PL, and posts a note to Slack.
+When a Shopify order is paid, this workflow checks Shopify's signature, builds a pick list from the lines that need shipping, emails it to your warehouse or 3PL once per order, and posts to Slack. Skipped orders and failures are posted to Slack too.
 
 Background: [Shopify automation](https://pushbuild.com/guides/shopify-automation.html) on pushbuild.com.
 
 ## What it does
 
-1. Webhook: receives Shopify's Order payment webhook
-1. Verify and build pick list: checks the HMAC signature and builds the pick list
-1. Signature valid?: drops anything that did not come from your store
-1. Email fulfilment team: sends the pick list
-1. Post to Slack: posts the order number and line count
+1. **Receive and verify**: the webhook (or the built-in sample order) is checked against Shopify's HMAC signature; anything unsigned goes to the alert.
+1. **Map**: **Config** sets the SKU field, the text for lines with no SKU, whether line properties (gift wrap, engraving) are included, and how shipping methods are renamed for the warehouse.
+1. **Dedupe**: order ids already sent are remembered, so a webhook Shopify delivers twice never sends a second pick list.
+1. **Filter**: orders with a skip tag (for example `wholesale`) or nothing to ship are skipped, and Slack says why.
+1. **Send with retries**: the email retries 3 times. The order is only marked sent after it succeeds, so a re-run sends anything that failed.
 
 ## What you need
 
-- An n8n instance where you can set `NODE_FUNCTION_ALLOW_BUILTIN=crypto`
-- A Shopify store (admin access)
-- An SMTP account
-- A Slack incoming webhook URL
+- An n8n instance with `NODE_FUNCTION_ALLOW_BUILTIN=crypto`
+- Shopify store admin, an SMTP account and a Slack incoming webhook URL
 
 ## Setup
 
-1. Import `workflow.json` into n8n.
-2. Set the environment variable `NODE_FUNCTION_ALLOW_BUILTIN=crypto` on your n8n instance and restart it.
-3. In Shopify admin, go to **Settings → Notifications → Webhooks**, create an **Order payment** webhook in JSON format, and paste the production URL from **Order paid (Shopify webhook)**.
-4. Copy the signing secret shown under the webhooks list into the settings block at the top of **Verify and build pick list**, with your fulfilment and from addresses and Slack URL.
-5. Add your SMTP credential to **Email fulfilment team**, activate, and send a test notification from Shopify.
-
-## Make it yours
-
-- Route orders to different warehouses by country or SKU with an IF or Switch node.
-- Post the order to your 3PL's API or ShipStation instead of email.
-- Add a second workflow on Shopify's fulfilment webhook to send tracking numbers to Klaviyo.
+1. Set `NODE_FUNCTION_ALLOW_BUILTIN=crypto` on n8n and restart it.
+2. Import `workflow.json` and fill in **Config**: the webhook signing secret, addresses, Slack URL and mapping options.
+3. Add your SMTP credential to **Email pick list**.
+4. Click **Test workflow** to run the sample order.
+5. In Shopify admin, go to **Settings → Notifications → Webhooks**, create an **Order payment** (JSON) webhook pointing at the production URL of **Order paid (Shopify)**, and activate the workflow.
 
 ## Notes
 
 - No credentials are included. Every value marked `REPLACE_ME` or `REPLACE_WITH_...` must be set before you activate the workflow.
-- Test with sample data first. Check each step's output in n8n before you point real traffic at it.
-
-## Want this set up for you?
-
-Pushbuild can set this up for you, connected to your own tools and tested end to end: [pushbuild.com/?need=template-shopify-order-fulfilment](https://pushbuild.com/?need=template-shopify-order-fulfilment)
+- Sent order ids are kept in the workflow's static data, which n8n saves on production (active) runs only.

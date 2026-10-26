@@ -1,17 +1,16 @@
 # Job completed to QuickBooks invoice
 
-When a job or order is marked complete in your other system, this workflow creates the QuickBooks Online invoice. It checks for an existing invoice with the same job number first, so the same job is never invoiced twice, and creates the customer if they are new.
+When a job, order or project is marked complete in your other system, this workflow creates the QuickBooks Online invoice once. It checks for an existing invoice with the same number first, matches the customer by email or name (or creates them), can email the invoice from QuickBooks, and posts every result and every failure to Slack.
 
 Background: [QuickBooks automation](https://pushbuild.com/guides/quickbooks-automation.html) on pushbuild.com.
 
 ## What it does
 
-1. Webhook: receives the completed job (job id, customer, email, lines)
-1. Find invoice by job number: queries QuickBooks for an invoice whose DocNumber matches the job id
-1. Already invoiced?: if one exists, posts a note to Slack and stops
-1. Find customer / Create customer: matches the customer by display name, or creates them
-1. Build invoice / Create invoice: posts the invoice with your item, quantity and rate per line
-1. Report: posts the new invoice number to Slack
+1. **Receive and map**: a webhook (or the built-in sample job) is read using the `field_*` names in **Config**, so any system's payload works without editing code. Jobs with no id, no customer or a bad line are rejected with a reason.
+1. **Never invoice twice**: the invoice number is the job id plus an optional prefix. If QuickBooks already has it, nothing is created.
+1. **Customer**: matched by email when there is one, otherwise by display name, and created if new.
+1. **Invoice**: lines map to your QuickBooks items, the due date follows `due_days`, and `email_invoice` sends it from QuickBooks.
+1. **Retries and alerts**: every QuickBooks call retries 3 times. Anything that still fails posts the step, the job and QuickBooks' reason to Slack.
 
 ## What you need
 
@@ -22,22 +21,13 @@ Background: [QuickBooks automation](https://pushbuild.com/guides/quickbooks-auto
 ## Setup
 
 1. Import `workflow.json` into n8n.
-2. Create a **QuickBooks Online OAuth2 API** credential and select it on the four QuickBooks HTTP steps.
-3. In **Config**, set `realm_id` (your company ID), `default_item_id` (the product or service to invoice against) and the Slack URL. Leave `qbo_base_url` on the sandbox until you have tested.
-4. Point your job, CRM or order system's webhook at the URL on **Job completed (webhook)**. The expected body is shown in **Normalize job**.
-5. Test with a sandbox company, compare the invoices with what your bookkeeper expects, then switch `qbo_base_url` to `https://quickbooks.api.intuit.com`.
-
-## Make it yours
-
-- Map each line to a different QuickBooks item by sending `item_id` per line.
-- Add class, location or tax code fields to **Build invoice** if your books use them.
-- Swap the webhook for a Schedule trigger that reads completed jobs from a spreadsheet or API.
+2. Create a **QuickBooks Online OAuth2 API** credential and select it on the five QuickBooks steps.
+3. In **Config**, set `realm_id`, `default_item_id` and the Slack URL. Leave `qbo_base_url` on the sandbox until you have tested.
+4. Set the `field_*` names in **Config** to match your system's payload. Dotted paths such as `job.id` work.
+5. Click **Test workflow** to send the sample job to your sandbox company and check the invoice.
+6. Point your system's webhook at **Job completed (webhook)**, then switch `qbo_base_url` to `https://quickbooks.api.intuit.com`.
 
 ## Notes
 
 - No credentials are included. Every value marked `REPLACE_ME` or `REPLACE_WITH_...` must be set before you activate the workflow.
-- Test with sample data first. Check each step's output in n8n before you point real traffic at it.
-
-## Want this set up for you?
-
-Pushbuild can set this up for you, connected to your own tools and tested end to end: [pushbuild.com/?need=template-quickbooks-invoice-sync](https://pushbuild.com/?need=template-quickbooks-invoice-sync)
+- QuickBooks invoice numbers can be at most 21 characters, so the prefix plus job id must fit.

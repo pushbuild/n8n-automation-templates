@@ -1,207 +1,678 @@
 {
-  "name": "Shopify paid order to fulfilment team notice (Pushbuild template)",
-  "nodes": [
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "shopify-order-paid",
-        "responseMode": "onReceived",
-        "options": {
-          "rawBody": true
-        }
-      },
-      "id": "ce867433-a687-58da-860c-d1df2024deb6",
-      "name": "Order paid (Shopify webhook)",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [
-        0,
-        300
-      ],
-      "webhookId": "3b0025b0-23d0-5d7b-aa38-1cc94a152737"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Verifies Shopify's HMAC signature, then builds a pick list.\n// Needs NODE_FUNCTION_ALLOW_BUILTIN=crypto in your n8n environment.\nconst crypto = require('crypto');\n// Settings\nconst cfg = {\n  shopify_webhook_secret: 'REPLACE_WITH_WEBHOOK_SIGNING_SECRET',\n  fulfilment_email: 'warehouse@yourbusiness.com',\n  from_email: 'orders@yourbusiness.com',\n  slack_webhook_url: 'https://hooks.slack.com/services/REPLACE_ME',\n};\nconst out = [];\nfor (let i = 0; i < $input.all().length; i++) {\n  const item = $input.all()[i];\n  const raw = await this.helpers.getBinaryDataBuffer(i, 'data');\n  const sent = (item.json.headers || {})['x-shopify-hmac-sha256'] || '';\n  const calc = crypto.createHmac('sha256', cfg.shopify_webhook_secret).update(raw).digest('base64');\n  const valid = sent.length === calc.length && crypto.timingSafeEqual(Buffer.from(sent), Buffer.from(calc));\n  const o = item.json.body && item.json.body.id ? item.json.body : JSON.parse(raw.toString('utf8'));\n  const a = o.shipping_address || {};\n  const lines = (o.line_items || []).map(l => `${l.quantity} x ${l.sku || '-'}  ${l.title}${l.variant_title ? ' (' + l.variant_title + ')' : ''}`);\n  out.push({ json: {\n    valid,\n    fulfilment_email: cfg.fulfilment_email, from_email: cfg.from_email, slack_webhook_url: cfg.slack_webhook_url,\n    order: o.name,\n    customer: [a.first_name, a.last_name].filter(Boolean).join(' '),\n    ship_to: [a.address1, a.address2, a.city, a.province_code, a.zip, a.country_code].filter(Boolean).join(', '),\n    shipping: (o.shipping_lines || []).map(s => s.title).join(', ') || 'standard',\n    note: o.note || '',\n    pick_list: lines.join('\\n'),\n    items: lines.length,\n  } });\n}\nreturn out;"
-      },
-      "id": "d3fcb829-8a97-5433-b365-91757cfe4357",
-      "name": "Verify and build pick list",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        440,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
-            {
-              "id": "acf9b097-f98f-5a61-a73b-1a9b463ba7d8",
-              "leftValue": "={{ $json.valid }}",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "3acebd0e-49ac-5d79-a931-cf771cea4561",
-      "name": "Signature valid?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        660,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "fromEmail": "={{ $json.from_email }}",
-        "toEmail": "={{ $json.fulfilment_email }}",
-        "subject": "=Pick and pack: order {{ $json.order }} ({{ $json.items }} lines, {{ $json.shipping }})",
-        "emailFormat": "text",
-        "text": "=Order {{ $json.order }}\nShip to: {{ $json.customer }}, {{ $json.ship_to }}\nShipping: {{ $json.shipping }}\n\n{{ $json.pick_list }}\n\nNote: {{ $json.note || 'none' }}",
-        "options": {}
-      },
-      "id": "db8b010b-6d6b-5f63-a683-9b666ebd6549",
-      "name": "Email fulfilment team",
-      "type": "n8n-nodes-base.emailSend",
-      "typeVersion": 2.1,
-      "position": [
-        880,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $('Verify and build pick list').item.json.slack_webhook_url }}",
-        "options": {},
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ text: `Order ${$('Verify and build pick list').item.json.order} sent to fulfilment (${$('Verify and build pick list').item.json.items} lines, ${$('Verify and build pick list').item.json.shipping}).` }) }}"
-      },
-      "id": "e039c56f-033a-5b72-a40c-5d7bd422432e",
-      "name": "Post to Slack",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1100,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## Shopify paid order \u2192 fulfilment notice\nWhen a Shopify order is paid, verify the HMAC signature, build a pick list (SKUs, quantities, ship-to, shipping method), email it to your warehouse/3PL and post a note to Slack.\n\n**What you need:** n8n with `NODE_FUNCTION_ALLOW_BUILTIN=crypto` \u2022 Shopify store admin \u2022 SMTP \u2022 Slack incoming webhook\n\n**Setup**\n1. Set `NODE_FUNCTION_ALLOW_BUILTIN=crypto` on your n8n instance and restart.\n2. Shopify admin \u2192 **Settings \u2192 Notifications \u2192 Webhooks** \u2192 create an **Order payment** (JSON) webhook pointing at **Order paid**'s production URL.\n3. Paste the signing secret + your fulfilment/from addresses + Slack URL into the settings block atop **Verify and build pick list**.\n4. Add your SMTP credential to **Email fulfilment team**, activate, send a Shopify test.\n\nNo credentials are bundled \u2014 every `REPLACE_ME` must be set before activating.\nGuide: pushbuild.com/guides/shopify-automation.html",
-        "height": 300,
-        "width": 1200,
-        "color": 7
-      },
-      "id": "c57ecbf9-6b8e-4bad-aae1-8c2189534d6d",
-      "name": "Sticky Note 3e2200",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -40,
-        -360
-      ]
-    },
-    {
-      "parameters": {
-        "content": "### 1 \u00b7 Receive & verify\nWebhook receives the paid order; **Verify and build pick list** checks the HMAC signature and assembles the pick list; anything unsigned is dropped.",
-        "height": 180,
-        "width": 740,
-        "color": 5
-      },
-      "id": "4ef4b84c-d054-49b3-9635-594b9fa1a484",
-      "name": "Sticky Note fb2119",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -40,
-        80
-      ]
-    },
-    {
-      "parameters": {
-        "content": "### 2 \u00b7 Notify\nEmails the pick list to fulfilment and posts the order number + line count to Slack.",
-        "height": 180,
-        "width": 420,
-        "color": 6
-      },
-      "id": "596fc49d-4932-4e3c-867d-0b1e4694775e",
-      "name": "Sticky Note 4f6adf",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        820,
-        80
-      ]
+ "name": "Shopify paid order to warehouse pick list, with signature check, dedupe and alerts",
+ "nodes": [
+  {
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "shopify-order-paid",
+    "responseMode": "onReceived",
+    "options": {
+     "rawBody": true
     }
-  ],
-  "connections": {
-    "Order paid (Shopify webhook)": {
-      "main": [
-        [
-          {
-            "node": "Verify and build pick list",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Verify and build pick list": {
-      "main": [
-        [
-          {
-            "node": "Signature valid?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Signature valid?": {
-      "main": [
-        [
-          {
-            "node": "Email fulfilment team",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Email fulfilment team": {
-      "main": [
-        [
-          {
-            "node": "Post to Slack",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
+   },
+   "id": "3af9e0cb-09a9-54a8-b091-70a8a32d4cc2",
+   "name": "Order paid (Shopify)",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    0
+   ],
+   "webhookId": "d0e5f974-ee66-5e49-adce-9e059658b9a1"
   },
-  "active": false,
-  "settings": {
-    "executionOrder": "v1"
+  {
+   "parameters": {},
+   "id": "103405ae-4419-5997-87fc-121b9c95e5ad",
+   "name": "Test with sample data",
+   "type": "n8n-nodes-base.manualTrigger",
+   "typeVersion": 1,
+   "position": [
+    0,
+    400
+   ]
   },
-  "meta": {
-    "templateCredsSetupCompleted": false
+  {
+   "parameters": {
+    "jsCode": "\n// A trimmed Shopify orders/paid payload. Run the workflow with \"Test workflow\" to see every step without a real order.\nreturn [{ json: { sample: true, body: {\n  id: 820982911946154500, name: '#1001', tags: '', note: 'Leave at the side door',\n  shipping_address: { first_name: 'Sam', last_name: 'Lee', address1: '12 Main St', city: 'Groton', province_code: 'MA', zip: '01450', country_code: 'US' },\n  shipping_lines: [{ title: 'Standard Shipping' }],\n  line_items: [\n    { quantity: 2, sku: 'MUG-BLU', title: 'Mug', variant_title: 'Blue', requires_shipping: true, properties: [{ name: 'Gift wrap', value: 'Yes' }] },\n    { quantity: 1, sku: '', title: 'Gift card', requires_shipping: false }\n  ] } } }];\n"
+   },
+   "id": "84daa462-e586-5335-8a1f-ceef7e2b0244",
+   "name": "Sample order",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    260,
+    400
+   ]
   },
-  "tags": []
+  {
+   "parameters": {
+    "assignments": {
+     "assignments": [
+      {
+       "id": "7c1159f8-2d4a-5983-af62-ff71fda3c413",
+       "name": "workflow_label",
+       "value": "Shopify fulfilment",
+       "type": "string"
+      },
+      {
+       "id": "5e1e5656-0faa-51d3-af33-d37407d7b9d5",
+       "name": "shopify_webhook_secret",
+       "value": "REPLACE_WITH_WEBHOOK_SIGNING_SECRET",
+       "type": "string"
+      },
+      {
+       "id": "1a32e575-cf5e-5183-a86c-02739f89cb35",
+       "name": "fulfilment_email",
+       "value": "warehouse@yourbusiness.com",
+       "type": "string"
+      },
+      {
+       "id": "3dbd19e5-994f-5448-b87d-72651907faaf",
+       "name": "from_email",
+       "value": "orders@yourbusiness.com",
+       "type": "string"
+      },
+      {
+       "id": "34467312-d42f-5b42-b2ae-c28a81347aa1",
+       "name": "slack_webhook_url",
+       "value": "https://hooks.slack.com/services/REPLACE_ME",
+       "type": "string"
+      },
+      {
+       "id": "d422815b-33ea-5527-b602-f6deaa82d4a3",
+       "name": "skip_tags",
+       "value": "wholesale,do-not-ship",
+       "type": "string"
+      },
+      {
+       "id": "ff2a8dd0-31a6-5101-ba82-10ceebbe5389",
+       "name": "skip_if_no_shipping",
+       "value": "true",
+       "type": "string"
+      },
+      {
+       "id": "fdd65dec-c5d1-583a-add8-8803368f0e5a",
+       "name": "sku_field",
+       "value": "sku",
+       "type": "string"
+      },
+      {
+       "id": "09b75f45-7b9b-55eb-9dd8-9f2c92eccabc",
+       "name": "missing_sku_text",
+       "value": "NO-SKU",
+       "type": "string"
+      },
+      {
+       "id": "1b5d1859-6890-53ab-a6dc-9f746a4c969c",
+       "name": "include_line_properties",
+       "value": "true",
+       "type": "string"
+      },
+      {
+       "id": "1dcf5372-2a3a-5045-ae64-7055f399087d",
+       "name": "shipping_map",
+       "value": "{\"Standard Shipping\":\"Ground\",\"Express\":\"2-Day\"}",
+       "type": "string"
+      }
+     ]
+    },
+    "options": {},
+    "includeOtherFields": true
+   },
+   "id": "fd9db575-e4d7-5646-816c-16fd1513db83",
+   "name": "Config",
+   "type": "n8n-nodes-base.set",
+   "typeVersion": 3.4,
+   "position": [
+    260,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Checks Shopify's X-Shopify-Hmac-Sha256 header against the raw body. Needs NODE_FUNCTION_ALLOW_BUILTIN=crypto.\n// The sample order skips the check.\nconst crypto = require('crypto');\nconst cfg = $('Config').first().json, out = [];\nfor (let i = 0; i < $input.all().length; i++) {\n  const it = $input.all()[i];\n  if (it.json.sample) { out.push({ json: { valid: true, order: it.json.body } }); continue; }\n  let valid = false, order = it.json.body || {};\n  try {\n    const raw = await this.helpers.getBinaryDataBuffer(i, 'data');\n    const sent = String((it.json.headers || {})['x-shopify-hmac-sha256'] || '');\n    const calc = crypto.createHmac('sha256', cfg.shopify_webhook_secret).update(raw).digest('base64');\n    valid = sent.length === calc.length && crypto.timingSafeEqual(Buffer.from(sent), Buffer.from(calc));\n    if (!order.id) order = JSON.parse(raw.toString('utf8'));\n  } catch (e) { valid = false; }\n  out.push({ json: { valid, order, ref: order.name || '' } });\n}\nreturn out;\n"
+   },
+   "id": "80fc552d-ee25-59d4-852a-091211def4fd",
+   "name": "Verify signature",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    520,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "f9353d94-eb9c-5f9f-b3d9-b63456f71a26",
+       "leftValue": "={{ $json.valid }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "f9353d94-eb9c-5f9f-b3d9-b63456f71a26",
+   "name": "Signature valid?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    780,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "return $input.all().map(i => ({ json: { ref: i.json.ref, message: 'Signature did not match. Check shopify_webhook_secret in Config, or someone other than Shopify called the webhook.' } }));"
+   },
+   "id": "da0d275b-93a1-57fb-813a-016de4e2f921",
+   "name": "Unsigned request",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1040,
+    200
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Field mapping lives in Config: skip tags, SKU field, missing-SKU text, line properties and shipping names.\nconst cfg = $('Config').first().json;\nconst skipTags = String(cfg.skip_tags || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);\nlet shipMap = {}; try { shipMap = JSON.parse(cfg.shipping_map || '{}'); } catch (e) {}\nreturn $input.all().map(i => {\n  const o = i.json.order || {}, a = o.shipping_address || {};\n  const tags = String(o.tags || '').toLowerCase().split(',').map(s => s.trim());\n  const lines = (o.line_items || []).filter(l => l.requires_shipping !== false);\n  const props = l => String(cfg.include_line_properties) === 'true' && (l.properties || []).length ? ' [' + l.properties.map(p => p.name + ': ' + p.value).join(', ') + ']' : '';\n  const pick = lines.map(l => `${l.quantity} x ${l[cfg.sku_field] || cfg.missing_sku_text}  ${l.title}${l.variant_title ? ' (' + l.variant_title + ')' : ''}${props(l)}`);\n  const ship = (o.shipping_lines || []).map(s => shipMap[s.title] || s.title).join(', ') || 'Standard';\n  const skip = skipTags.find(t => tags.includes(t)) ? 'tagged ' + skipTags.find(t => tags.includes(t))\n    : (!lines.length && String(cfg.skip_if_no_shipping) === 'true') ? 'nothing to ship' : '';\n  return { json: { order_id: String(o.id || ''), ref: o.name || String(o.id || ''), skip,\n    customer: [a.first_name, a.last_name].filter(Boolean).join(' '), company: a.company || '', phone: a.phone || '',\n    ship_to: [a.address1, a.address2, a.city, a.province_code, a.zip, a.country_code].filter(Boolean).join(', '),\n    shipping: ship, note: o.note || '', pick_list: pick.join('\\n'), lines: pick.length,\n    missing_sku: lines.some(l => !l[cfg.sku_field]) } };\n});\n"
+   },
+   "id": "046cb9da-3403-5f7f-b9a5-d3375d58b1b1",
+   "name": "Map order",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1040,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Idempotency: order ids already sent are kept in the workflow's static data (saved on production runs only),\n// so a webhook Shopify delivers twice, or a re-run, never sends a second pick list.\nconst seen = $getWorkflowStaticData('global').sent || [];\nreturn $input.all().map(i => ({ json: Object.assign({}, i.json, { duplicate: seen.includes(i.json.order_id) }) }));\n"
+   },
+   "id": "3b30bf5b-c9a6-5092-9bd3-438a8208fc4d",
+   "name": "Already sent?",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1300,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "478e6b65-899b-5f7e-a328-61c950f03d7c",
+       "leftValue": "={{ $json.duplicate }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "false",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "478e6b65-899b-5f7e-a328-61c950f03d7c",
+   "name": "New order?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    1560,
+    0
+   ]
+  },
+  {
+   "parameters": {},
+   "id": "bdfe4c37-390b-5be5-9eae-dd1817b76bbe",
+   "name": "Duplicate: ignore",
+   "type": "n8n-nodes-base.noOp",
+   "typeVersion": 1,
+   "position": [
+    1820,
+    200
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "1abf49c6-c225-5e09-ae67-7aeb29eea852",
+       "leftValue": "={{ $json.skip }}",
+       "operator": {
+        "type": "string",
+        "operation": "empty",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "1abf49c6-c225-5e09-ae67-7aeb29eea852",
+   "name": "Ship it?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    1820,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Config').first().json.slack_webhook_url }}",
+    "options": {},
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ text: `Order ${$json.ref} not sent to fulfilment: ${$json.skip}.` }) }}"
+   },
+   "id": "e0624643-590d-5235-8f9a-25a05b6bdd1c",
+   "name": "Skipped (Slack)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2080,
+    200
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000
+  },
+  {
+   "parameters": {
+    "fromEmail": "={{ $('Config').first().json.from_email }}",
+    "toEmail": "={{ $('Config').first().json.fulfilment_email }}",
+    "subject": "=Pick and pack: order {{ $json.ref }} ({{ $json.lines }} lines, {{ $json.shipping }})",
+    "emailFormat": "text",
+    "text": "=Order {{ $json.ref }}\nShip to: {{ $json.customer }}{{ $json.company ? ', ' + $json.company : '' }}\n{{ $json.ship_to }}\nPhone: {{ $json.phone || '-' }}\nShipping: {{ $json.shipping }}\n\n{{ $json.pick_list }}\n\nNote: {{ $json.note || 'none' }}",
+    "options": {}
+   },
+   "id": "40e4c5b8-b84c-5943-907d-98ae171b9492",
+   "name": "Email pick list",
+   "type": "n8n-nodes-base.emailSend",
+   "typeVersion": 2.1,
+   "position": [
+    2080,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Only after the email succeeded. Keeps the last 1000 order ids.\nconst sd = $getWorkflowStaticData('global'), seen = sd.sent || [];\nfor (const i of $('Ship it?').all()) if (!seen.includes(i.json.order_id)) seen.push(i.json.order_id);\nsd.sent = seen.slice(-1000);\nreturn $('Ship it?').all().map(i => ({ json: i.json }));\n"
+   },
+   "id": "6f19642e-a348-54c8-8096-7d1a63470377",
+   "name": "Mark as sent",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2340,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Config').first().json.slack_webhook_url }}",
+    "options": {},
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ text: `Order ${$json.ref} sent to fulfilment: ${$json.lines} lines, ${$json.shipping}${$json.missing_sku ? '. Check: a line has no SKU' : ''}.` }) }}"
+   },
+   "id": "b6be5902-54ec-5dfc-8518-cdc4de7d6806",
+   "name": "Sent (Slack)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2600,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// One alert for every failure path. $prevNode names the step that failed.\nconst cfg = $('Config').first().json;\nreturn $input.all().map(i => {\n  const e = i.json.error;\n  const msg = String((typeof e === 'string' ? e : e && (e.description || e.message)) || i.json.message || JSON.stringify(i.json)).slice(0, 400);\n  return { json: { text: `${cfg.workflow_label}: ${$prevNode.name} failed${i.json.ref ? ' for ' + i.json.ref : ''}. ${msg}` } };\n});\n"
+   },
+   "id": "2ff347e0-bbb8-51da-a405-b772c43e95de",
+   "name": "Describe failure",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2340,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Config').first().json.slack_webhook_url }}",
+    "options": {},
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ text: $json.text }) }}"
+   },
+   "id": "a8fe1af6-86c4-5736-91fe-9971bb0f13f2",
+   "name": "Failure alert",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2600,
+    400
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000
+  },
+  {
+   "parameters": {
+    "content": "## Shopify paid order → warehouse pick list\nWhen an order is paid, this checks Shopify's signature, builds a pick list from the shippable lines, emails it to your warehouse or 3PL once per order, and posts to Slack. Anything that fails or is skipped is posted to Slack too.\n\n**You need:** n8n with `NODE_FUNCTION_ALLOW_BUILTIN=crypto` · Shopify admin · SMTP · a Slack incoming webhook\n\n**Setup**\n1. Set `NODE_FUNCTION_ALLOW_BUILTIN=crypto` on n8n and restart.\n2. Fill in **Config**: signing secret, addresses, Slack URL and the mapping options.\n3. Add your SMTP credential to **Email pick list**.\n4. Click **Test workflow** to run the sample order.\n5. Shopify admin → Settings → Notifications → Webhooks → **Order payment** (JSON) → the production URL of **Order paid**. Activate.\n\nNo credentials are included. Guide: pushbuild.com/guides/shopify-automation.html",
+    "height": 920,
+    "width": 780,
+    "color": 7
+   },
+   "id": "03c074c1-ecb9-5d20-b484-759a3c46136a",
+   "name": "Note 1",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -860,
+    -420
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 1 · Receive and verify\nThe webhook takes the paid order; **Test with sample data** feeds a sample order instead. **Verify signature** rejects anything Shopify did not sign and sends it to the failure alert.",
+    "height": 720,
+    "width": 1040,
+    "color": 5
+   },
+   "id": "b64e0e34-1c2f-5c06-9103-29087886cae4",
+   "name": "Note 2",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -80,
+    -220
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 2 · Map, dedupe, filter\n**Map order** applies your Config mapping (SKU field, skip tags, line properties, shipping names). **Already sent?** drops orders already sent. **Ship it?** skips tagged orders and orders with nothing to ship, and says so in Slack.",
+    "height": 520,
+    "width": 1040,
+    "color": 4
+   },
+   "id": "f90c0b23-68a1-5698-9591-5a3b5b6a6a3e",
+   "name": "Note 3",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    960,
+    -220
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 3 · Send, with retries\n**Email pick list** retries 3 times, 5 s apart. On success the order is marked sent and Slack is told; if it still fails, the error goes to the alert and the order is not marked, so a re-run sends it.",
+    "height": 520,
+    "width": 780,
+    "color": 6
+   },
+   "id": "cb5869f2-cfd8-5c0c-a538-059eced716ff",
+   "name": "Note 4",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    2000,
+    -220
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 4 · Failure alert\nOne Slack message names the step that failed, the order and the reason.",
+    "height": 320,
+    "width": 520,
+    "color": 3
+   },
+   "id": "de415a6d-2095-5fde-bb1e-7fa0a6d81724",
+   "name": "Note 5",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    2260,
+    180
+   ]
+  }
+ ],
+ "connections": {
+  "Describe failure": {
+   "main": [
+    [
+     {
+      "node": "Failure alert",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Order paid (Shopify)": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Test with sample data": {
+   "main": [
+    [
+     {
+      "node": "Sample order",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Sample order": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Config": {
+   "main": [
+    [
+     {
+      "node": "Verify signature",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Verify signature": {
+   "main": [
+    [
+     {
+      "node": "Signature valid?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Signature valid?": {
+   "main": [
+    [
+     {
+      "node": "Map order",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Unsigned request",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Unsigned request": {
+   "main": [
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Map order": {
+   "main": [
+    [
+     {
+      "node": "Already sent?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Already sent?": {
+   "main": [
+    [
+     {
+      "node": "New order?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "New order?": {
+   "main": [
+    [
+     {
+      "node": "Ship it?",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Duplicate: ignore",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Ship it?": {
+   "main": [
+    [
+     {
+      "node": "Email pick list",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Skipped (Slack)",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Email pick list": {
+   "main": [
+    [
+     {
+      "node": "Mark as sent",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Mark as sent": {
+   "main": [
+    [
+     {
+      "node": "Sent (Slack)",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "active": false,
+ "settings": {
+  "executionOrder": "v1"
+ },
+ "meta": {
+  "templateCredsSetupCompleted": false
+ },
+ "tags": []
 }
