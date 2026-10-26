@@ -1,0 +1,1671 @@
+{
+ "name": "Qualify inbound leads with an AI agent that researches, scores and routes them to HubSpot, Google Calendar and Slack",
+ "nodes": [
+  {
+   "parameters": {
+    "formTitle": "Talk to us",
+    "formDescription": "Tell us a little about your business and we'll get back to you.",
+    "formFields": {
+     "values": [
+      {
+       "fieldLabel": "Name",
+       "requiredField": true
+      },
+      {
+       "fieldLabel": "Work email",
+       "fieldType": "email",
+       "requiredField": true
+      },
+      {
+       "fieldLabel": "Company"
+      },
+      {
+       "fieldLabel": "Website"
+      },
+      {
+       "fieldLabel": "Phone"
+      },
+      {
+       "fieldLabel": "How can we help?",
+       "fieldType": "textarea",
+       "requiredField": true
+      }
+     ]
+    },
+    "options": {
+     "respondWithOptions": {
+      "values": {
+       "formSubmittedText": "Thanks, we've got it. You'll hear from us shortly."
+      }
+     }
+    }
+   },
+   "id": "c93a0dbf-9101-5a8e-9f11-dee078a2f06a",
+   "name": "Lead form",
+   "type": "n8n-nodes-base.formTrigger",
+   "typeVersion": 2.3,
+   "position": [
+    0,
+    0
+   ],
+   "webhookId": "8faee91f-8d49-548c-9524-55788ad822fe"
+  },
+  {
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "inbound-lead",
+    "responseMode": "onReceived",
+    "options": {}
+   },
+   "id": "ed28bb65-0746-5b58-a7aa-5611618a6f17",
+   "name": "Website form (webhook)",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    200
+   ],
+   "webhookId": "6d6432c3-58ad-5464-b22f-efb39669cc9f"
+  },
+  {
+   "parameters": {},
+   "id": "805e7f22-1baf-5a26-b753-73db4ff7dbc0",
+   "name": "Test with sample data",
+   "type": "n8n-nodes-base.manualTrigger",
+   "typeVersion": 1,
+   "position": [
+    0,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// A lead as your website form or CRM would send it. \"Test workflow\" runs the whole flow on it.\nreturn [{ json: { source: 'sample', body: { name: 'Dana Ortiz', email: 'dana@brightsmiledental.com', company: 'Bright Smile Dental',\n  website: 'brightsmiledental.com', phone: '+1 555 010 2233',\n  message: 'We run three dental offices (about 30 staff) and spend hours a week chasing insurance claims and re-entering patient data. We want this sorted before January. Can we talk next week?' } } }];\n"
+   },
+   "id": "dde166ad-2ac7-5fdf-ba12-28b8cb70f7c3",
+   "name": "Sample lead",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    260,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "assignments": {
+     "assignments": [
+      {
+       "id": "636aac37-43c5-58cd-9200-98875abc43a4",
+       "name": "workflow_label",
+       "value": "Lead qualifier",
+       "type": "string"
+      },
+      {
+       "id": "c24b8845-da05-5a10-803f-717cd4bfb1cb",
+       "name": "company_name",
+       "value": "Your Business",
+       "type": "string"
+      },
+      {
+       "id": "80faae0c-d511-5318-8a22-83ab50e21056",
+       "name": "what_we_sell",
+       "value": "Describe what you sell in one or two sentences, e.g. bookkeeping and payroll for dental and medical practices.",
+       "type": "string"
+      },
+      {
+       "id": "3a548fdd-4e44-5f75-b07f-4bc060e3063a",
+       "name": "ideal_customer",
+       "value": "e.g. US practices with 5 to 50 staff, an owner or office manager writing in, a clear need and a timeline.",
+       "type": "string"
+      },
+      {
+       "id": "68e7f7f4-f902-508c-9472-cf4c1b471c37",
+       "name": "hot_threshold",
+       "value": 75,
+       "type": "number"
+      },
+      {
+       "id": "e3bed5b2-906c-58d0-be62-99aab737b227",
+       "name": "warm_threshold",
+       "value": 45,
+       "type": "number"
+      },
+      {
+       "id": "e8b70bff-8bf2-569c-845f-ec1e854f3fa7",
+       "name": "dedupe_hours",
+       "value": 24,
+       "type": "number"
+      },
+      {
+       "id": "57772793-d74f-5bdc-bd3b-7bb6fe310682",
+       "name": "owners_json",
+       "value": "{\"default\":{\"name\":\"Sales\",\"email\":\"sales@yourbusiness.com\",\"hubspot_owner_id\":\"\"},\"enterprise\":{\"name\":\"Head of sales\",\"email\":\"enterprise@yourbusiness.com\",\"hubspot_owner_id\":\"\"}}",
+       "type": "string"
+      },
+      {
+       "id": "2ddb5d77-88ff-57ae-b487-ab058df5961f",
+       "name": "hubspot_portal_id",
+       "value": "REPLACE_WITH_PORTAL_ID",
+       "type": "string"
+      },
+      {
+       "id": "0cc35f74-9ecc-5f0d-acca-5d62153dfc85",
+       "name": "deal_pipeline",
+       "value": "default",
+       "type": "string"
+      },
+      {
+       "id": "d1d5b079-1f75-534f-9202-6d1faa9c8e41",
+       "name": "deal_stage",
+       "value": "appointmentscheduled",
+       "type": "string"
+      },
+      {
+       "id": "7463d188-d52e-5508-a0cc-2b368658cd81",
+       "name": "lead_status_hot",
+       "value": "OPEN_DEAL",
+       "type": "string"
+      },
+      {
+       "id": "9d56b67f-cbc8-542f-ad5d-2f77f6281154",
+       "name": "lead_status_warm",
+       "value": "OPEN",
+       "type": "string"
+      },
+      {
+       "id": "ff6756d5-c0a1-5c2e-95fa-9ddaa6bfdada",
+       "name": "lead_status_nurture",
+       "value": "UNQUALIFIED",
+       "type": "string"
+      },
+      {
+       "id": "05a360fa-bd7f-5bfe-9c6d-5c874dbd12fe",
+       "name": "calendar_id",
+       "value": "primary",
+       "type": "string"
+      },
+      {
+       "id": "b7f36f33-bc75-581d-8a15-4af93dad118a",
+       "name": "timezone",
+       "value": "America/New_York",
+       "type": "string"
+      },
+      {
+       "id": "60e54e7c-a729-5264-b517-af2bfe7268ec",
+       "name": "business_start_hour",
+       "value": 9,
+       "type": "number"
+      },
+      {
+       "id": "075409fe-53cb-5cb3-a530-f566477cd015",
+       "name": "business_end_hour",
+       "value": 17,
+       "type": "number"
+      },
+      {
+       "id": "608c8d8b-3166-56bd-999e-419c38df13aa",
+       "name": "meeting_minutes",
+       "value": 30,
+       "type": "number"
+      },
+      {
+       "id": "af7a6d3d-3a7a-5f3e-b1d4-26b7c4f56b32",
+       "name": "booking_link",
+       "value": "https://calendly.com/REPLACE_ME",
+       "type": "string"
+      },
+      {
+       "id": "0129dfe9-3a75-5036-a394-49ed39b487af",
+       "name": "from_email",
+       "value": "hello@yourbusiness.com",
+       "type": "string"
+      },
+      {
+       "id": "603c1105-707f-527e-bade-f4715040bff8",
+       "name": "signature",
+       "value": "Your name\nYour Business",
+       "type": "string"
+      },
+      {
+       "id": "bd1474c2-01b1-5157-9f11-dc672b895349",
+       "name": "slack_webhook_url",
+       "value": "https://hooks.slack.com/services/REPLACE_ME",
+       "type": "string"
+      },
+      {
+       "id": "109cbd27-42d4-542f-a9ef-9ff61ab85372",
+       "name": "field_name",
+       "value": "name",
+       "type": "string"
+      },
+      {
+       "id": "8520878e-5256-57a6-9d6a-eeac0bd1eacb",
+       "name": "field_email",
+       "value": "email",
+       "type": "string"
+      },
+      {
+       "id": "ce98a6a7-5a3a-516a-84b0-64f6b1691e0d",
+       "name": "field_company",
+       "value": "company",
+       "type": "string"
+      },
+      {
+       "id": "bc388923-5524-5daf-a669-043b60011f74",
+       "name": "field_website",
+       "value": "website",
+       "type": "string"
+      },
+      {
+       "id": "2c42aae8-f7e3-5fa2-ac17-ae62feb76ec3",
+       "name": "field_phone",
+       "value": "phone",
+       "type": "string"
+      },
+      {
+       "id": "909039c7-967a-598e-af5d-35f8031b9d5a",
+       "name": "field_message",
+       "value": "message",
+       "type": "string"
+      }
+     ]
+    },
+    "options": {},
+    "includeOtherFields": true
+   },
+   "id": "7cc74c1a-7d21-5542-9de9-17f44c6c6116",
+   "name": "Config",
+   "type": "n8n-nodes-base.set",
+   "typeVersion": 3.4,
+   "position": [
+    260,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Reads your form or payload with the field_* names in Config (dotted paths allowed), falling back to common names.\nconst cfg = $('Config').first().json;\nconst get = (o, p) => String(p || '').split('.').reduce((v, k) => v == null ? v : v[k], o);\nconst FREE = ['gmail.com','googlemail.com','yahoo.com','hotmail.com','outlook.com','live.com','msn.com','icloud.com','me.com','aol.com','proton.me','protonmail.com','gmx.com','mail.com','yandex.com','zoho.com'];\nconst DISPOSABLE = ['mailinator.com','guerrillamail.com','10minutemail.com','tempmail.com','temp-mail.org','trashmail.com','yopmail.com','sharklasers.com'];\nconst SPAMMY = /\\b(seo services|backlinks?|guest post|link building|crypto|casino|forex|loan offer|web design services|rank (you|your site) #?1)\\b/i;\nconst b = $json.body || $json;\nconst pick = (key, ...alts) => { for (const k of [cfg[key], ...alts]) { const v = get(b, k); if (v != null && String(v).trim()) return String(v).trim(); } return ''; };\nconst name = pick('field_name', 'Name', 'full_name', 'firstname');\nconst email = pick('field_email', 'Work email', 'Email', 'email_address').toLowerCase();\nconst message = pick('field_message', 'How can we help?', 'Message', 'comments', 'notes');\nlet website = pick('field_website', 'Website', 'url', 'domain').toLowerCase().replace(/^https?:\\/\\//, '').replace(/^www\\./, '').replace(/\\/.*$/, '');\nconst emailDomain = (email.split('@')[1] || '');\nconst free = FREE.includes(emailDomain);\nconst domain = website || (free ? '' : emailDomain);\nconst urls = (message.match(/https?:\\/\\//g) || []).length;\nconst spam = [DISPOSABLE.includes(emailDomain) && 'disposable email', SPAMMY.test(message) && 'sales pitch wording', urls > 2 && 'many links'].filter(Boolean);\nconst problem = [!/^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$/.test(email) && 'no valid email', !message && !name && 'empty submission'].filter(Boolean).join(', ');\nconst [first, ...rest] = name.split(/\\s+/);\nreturn { json: { ref: email || name || '(no email)', name, first_name: first || '', last_name: rest.join(' '), email, company: pick('field_company', 'Company', 'company_name'),\n  domain, free_email: free, phone: pick('field_phone', 'Phone', 'phone_number'), message: message.slice(0, 4000),\n  source: $json.source || ($json.formMode ? 'n8n form' : 'website form'), spam_signals: spam, problem } };\n",
+    "mode": "runOnceForEachItem"
+   },
+   "id": "6dcaad64-657a-575f-afd2-8193213f8c93",
+   "name": "Normalize lead",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    520,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// The same person submitting twice (double click, re-sent webhook) within dedupe_hours is handled once.\n// Kept in the workflow's static data, which n8n saves on production runs only.\nconst cfg = $('Config').first().json, sd = $getWorkflowStaticData('global'), now = Date.now();\nconst seen = sd.seen || {}, win = Number(cfg.dedupe_hours || 24) * 36e5, out = [];\nfor (const k of Object.keys(seen)) if (now - seen[k] > win) delete seen[k];\n$input.all().forEach((i, n) => { const k = i.json.email; if (k && seen[k]) return; if (k) seen[k] = now; out.push({ json: i.json, pairedItem: n }); });\nsd.seen = seen;\nreturn out;\n"
+   },
+   "id": "51ac7d44-0cff-5247-b528-cafc8f47fe00",
+   "name": "Skip repeats",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    780,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "709c77fb-30ca-56d4-878c-6bbe1ba3e2ca",
+       "leftValue": "={{ $json.problem }}",
+       "operator": {
+        "type": "string",
+        "operation": "empty",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "709c77fb-30ca-56d4-878c-6bbe1ba3e2ca",
+   "name": "Valid lead?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    1040,
+    0
+   ]
+  },
+  {
+   "parameters": {},
+   "id": "c99e7215-07f4-54d8-8070-3829b0f488f6",
+   "name": "Not a lead: ignore",
+   "type": "n8n-nodes-base.noOp",
+   "typeVersion": 1,
+   "position": [
+    1300,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.hubapi.com/crm/v3/objects/contacts/search",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "hubspotAppToken",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ filterGroups: [{ filters: [{ propertyName: 'email', operator: 'EQ', value: $json.email }] }], properties: ['email', 'lifecyclestage', 'hs_lead_status', 'hubspot_owner_id', 'company'], limit: 1 }) }}"
+   },
+   "id": "75e1d1b8-e2a1-50a3-b2cd-d8fb9ac1caf9",
+   "name": "Find contact (HubSpot)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1300,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Adds what HubSpot already knows. Customers skip qualification and go straight to their owner.\nconst lead = $('Normalize lead').item.json, c = ($json.results || [])[0];\nconst p = c ? c.properties : {};\nreturn { json: Object.assign({}, lead, { contact_id: c ? c.id : '', lifecycle: p.lifecyclestage || '', current_owner_id: p.hubspot_owner_id || '',\n  existing_customer: ['customer', 'evangelist'].includes(p.lifecyclestage || '') }) };\n",
+    "mode": "runOnceForEachItem"
+   },
+   "id": "abe44d97-58d5-5499-8803-876aadb12810",
+   "name": "Merge CRM record",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1560,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "283d1b7b-6d5e-5348-a9dc-b362b6d057bd",
+       "leftValue": "={{ $json.existing_customer }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "283d1b7b-6d5e-5348-a9dc-b362b6d057bd",
+   "name": "Existing customer?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    1820,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Config').first().json.slack_webhook_url }}",
+    "options": {},
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ text: `:wave: Existing customer ${$json.name || $json.email}${$json.company ? ' (' + $json.company + ')' : ''} wrote in via ${$json.source}:\\n>${$json.message.replace(/\\n/g, '\\n>')}\\nHubSpot: https://app.hubspot.com/contacts/${$('Config').first().json.hubspot_portal_id}/record/0-1/${$json.contact_id}` }) }}"
+   },
+   "id": "a0199121-bead-56ee-ab54-9d7024414f6e",
+   "name": "Customer message (Slack)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2080,
+    400
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "promptType": "define",
+    "text": "=New lead from {{ $json.source }}:\n- Name: {{ $json.name || 'not given' }}\n- Email: {{ $json.email }}{{ $json.free_email ? ' (personal email address)' : '' }}\n- Company: {{ $json.company || 'not given' }}\n- Domain: {{ $json.domain || 'none' }}\n- Phone: {{ $json.phone || 'not given' }}\n- In our CRM already: {{ $json.contact_id ? 'yes, lifecycle stage ' + ($json.lifecycle || 'unknown') : 'no' }}\n- Spam signals found: {{ $json.spam_signals.join(', ') || 'none' }}\n\nTheir message:\n{{ $json.message }}\n\nToday is {{ $now.setZone($('Config').first().json.timezone).toFormat('cccc d LLLL yyyy') }}.",
+    "hasOutputParser": true,
+    "options": {
+     "systemMessage": "=You qualify inbound leads for {{ $('Config').first().json.company_name }}.\n\nWhat we sell: {{ $('Config').first().json.what_we_sell }}\nOur ideal customer: {{ $('Config').first().json.ideal_customer }}\n\nWork in this order:\n1. If the lead has a company domain, call \"Research company website\" once to learn what the company does, its size and location. Skip it for an empty domain.\n2. If the lead has a company domain, call \"Look up company in HubSpot\" to see whether we already know the company and have open deals.\n3. Use \"Think\" to weigh the evidence, then score the lead from 0 to 100:\n   - Fit, up to 50: how closely the company matches our ideal customer (industry, size, location).\n   - Intent, up to 30: a specific problem, a timeline, a budget, or a request to talk.\n   - Authority, up to 20: a decision maker, a company email rather than a personal one.\n   Spam, sales pitches, job seekers and vendors score under 10 with tier \"spam\".\n4. Write a short first reply to the lead: plain text, under 120 words, specific to what they wrote. No greeting line with their name, it is added for you. No sign-off. No prices, no promises, no meeting times (they are added for you).\n\nOnly use facts from the lead, the tools or the settings above. If the website could not be read, say so in red_flags and score on what you have.",
+     "maxIterations": 8
+    }
+   },
+   "id": "62a4190e-3bf1-5ca2-8b43-11b3d3c4d6cb",
+   "name": "Qualify lead (AI agent)",
+   "type": "@n8n/n8n-nodes-langchain.agent",
+   "typeVersion": 2.2,
+   "position": [
+    2080,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "model": {
+     "__rl": true,
+     "mode": "list",
+     "value": "gpt-4.1-mini"
+    },
+    "options": {
+     "temperature": 0.2
+    }
+   },
+   "id": "b30938e7-aaab-5496-8d75-f4ec524d2a0a",
+   "name": "OpenAI chat model",
+   "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+   "typeVersion": 1.2,
+   "position": [
+    1820,
+    280.0
+   ]
+  },
+  {
+   "parameters": {
+    "schemaType": "manual",
+    "inputSchema": "{\n  \"type\": \"object\",\n  \"required\": [\n    \"score\",\n    \"tier\",\n    \"segment\",\n    \"company_summary\",\n    \"fit_reasons\",\n    \"red_flags\",\n    \"next_step\",\n    \"reply_subject\",\n    \"reply_body\"\n  ],\n  \"properties\": {\n    \"score\": {\n      \"type\": \"integer\",\n      \"minimum\": 0,\n      \"maximum\": 100\n    },\n    \"tier\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"hot\",\n        \"warm\",\n        \"nurture\",\n        \"spam\"\n      ]\n    },\n    \"segment\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"smb\",\n        \"midmarket\",\n        \"enterprise\",\n        \"unknown\"\n      ],\n      \"description\": \"Company size band\"\n    },\n    \"industry\": {\n      \"type\": \"string\"\n    },\n    \"company_summary\": {\n      \"type\": \"string\",\n      \"description\": \"One or two sentences on what the company does, from the research\"\n    },\n    \"fit_reasons\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Up to 3 short reasons for the score\"\n    },\n    \"red_flags\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"next_step\": {\n      \"type\": \"string\",\n      \"description\": \"What sales should do next, one line\"\n    },\n    \"reply_subject\": {\n      \"type\": \"string\"\n    },\n    \"reply_body\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+   },
+   "id": "597f89c7-cfad-5de3-9205-f9dc4a0551a2",
+   "name": "Qualification schema",
+   "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+   "typeVersion": 1.3,
+   "position": [
+    2080,
+    280.0
+   ]
+  },
+  {
+   "parameters": {
+    "toolDescription": "Reads the text of a company's home page. Input: the bare domain, e.g. example.com.",
+    "url": "https://{domain}",
+    "placeholderDefinitions": {
+     "values": [
+      {
+       "name": "domain",
+       "description": "Bare company domain, e.g. example.com",
+       "type": "string"
+      }
+     ]
+    },
+    "optimizeResponse": true,
+    "responseType": "html",
+    "cssSelector": "body",
+    "onlyContent": true,
+    "elementsToOmit": "script, style, svg, noscript, iframe",
+    "truncateResponse": true,
+    "maxLength": 6000
+   },
+   "id": "236d22c3-e41b-51a7-a383-b5edd0a5fb27",
+   "name": "Research company website",
+   "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+   "typeVersion": 1.1,
+   "position": [
+    2340,
+    280.0
+   ]
+  },
+  {
+   "parameters": {
+    "toolDescription": "Finds a company in our HubSpot CRM by domain and returns its size, industry, lifecycle stage and number of deals. Input: the bare domain.",
+    "method": "POST",
+    "url": "https://api.hubapi.com/crm/v3/objects/companies/search",
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "hubspotAppToken",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "{\"filterGroups\":[{\"filters\":[{\"propertyName\":\"domain\",\"operator\":\"EQ\",\"value\":\"{domain}\"}]}],\"properties\":[\"name\",\"industry\",\"numberofemployees\",\"annualrevenue\",\"lifecyclestage\",\"num_associated_deals\",\"hs_lastmodifieddate\"],\"limit\":1}",
+    "placeholderDefinitions": {
+     "values": [
+      {
+       "name": "domain",
+       "description": "Bare company domain, e.g. example.com",
+       "type": "string"
+      }
+     ]
+    },
+    "optimizeResponse": true,
+    "responseType": "json",
+    "fieldsToInclude": "all"
+   },
+   "id": "6f9c8528-a4da-507e-a066-be453157dae8",
+   "name": "Look up company in HubSpot",
+   "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+   "typeVersion": 1.1,
+   "position": [
+    2600,
+    280.0
+   ]
+  },
+  {
+   "parameters": {},
+   "id": "d1446d31-7791-51c2-b8f1-e6e7fe8d04fc",
+   "name": "Think",
+   "type": "@n8n/n8n-nodes-langchain.toolThink",
+   "typeVersion": 1.1,
+   "position": [
+    3120,
+    280.0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// The AI scores; your rules decide. Tier comes from the score and your thresholds, not from the model's own label.\nconst cfg = $('Config').first().json, lead = $('Merge CRM record').item.json, ai = $json.output || {};\nconst score = Math.max(0, Math.min(100, Math.round(Number(ai.score) || 0)));\nlet tier = score >= Number(cfg.hot_threshold) ? 'hot' : score >= Number(cfg.warm_threshold) ? 'warm' : 'nurture';\nif (ai.tier === 'spam' || (lead.spam_signals.length && score < 30)) tier = 'spam';\nif (tier === 'hot' && lead.free_email && score < 90) tier = 'warm';          // a personal address needs very strong intent to skip the queue\nlet owners = {}; try { owners = JSON.parse(cfg.owners_json || '{}'); } catch (e) {}\nconst owner = owners[ai.segment] || owners.default || {};\nconst local = $now.setZone(cfg.timezone);\nconst after_hours = local.weekday > 5 || local.hour < Number(cfg.business_start_hour) || local.hour >= Number(cfg.business_end_hour);\nconst status = { hot: cfg.lead_status_hot, warm: cfg.lead_status_warm, nurture: cfg.lead_status_nurture }[tier] || '';\nreturn { json: Object.assign({}, lead, { score, tier, segment: ai.segment || 'unknown', industry: ai.industry || '', summary: ai.company_summary || '',\n  reasons: (ai.fit_reasons || []).slice(0, 3), red_flags: ai.red_flags || [], next_step: ai.next_step || '', lead_status: status,\n  owner_name: owner.name || '', owner_email: owner.email || '', owner_id: owner.hubspot_owner_id || lead.current_owner_id || '', after_hours,\n  reply_subject: ai.reply_subject || 'Thanks for getting in touch', reply_body: ai.reply_body || '' }) };\n",
+    "mode": "runOnceForEachItem"
+   },
+   "id": "574854fc-6099-5f03-be05-cdab7f58af04",
+   "name": "Apply scoring rules",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2340,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "70d6163d-60c3-5f0b-9837-79bf832f86d7",
+       "leftValue": "={{ $json.tier }}",
+       "operator": {
+        "type": "string",
+        "operation": "equals"
+       },
+       "rightValue": "spam"
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "70d6163d-60c3-5f0b-9837-79bf832f86d7",
+   "name": "Spam?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    2860,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "34449f83-0c1a-5e52-9c68-6a75533f7a5a",
+       "leftValue": "={{ $json.output }}",
+       "operator": {
+        "type": "object",
+        "operation": "notEmpty",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "34449f83-0c1a-5e52-9c68-6a75533f7a5a",
+   "name": "AI answered?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    2340,
+    0
+   ]
+  },
+  {
+   "parameters": {},
+   "id": "33bcfadc-efcf-5140-9179-da4c59e8a979",
+   "name": "Spam: no action",
+   "type": "n8n-nodes-base.noOp",
+   "typeVersion": 1,
+   "position": [
+    3120,
+    -200
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.hubapi.com/crm/v3/objects/contacts/batch/upsert",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "hubspotAppToken",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ inputs: [{ idProperty: 'email', id: $json.email, properties: Object.fromEntries(Object.entries({ email: $json.email, firstname: $json.first_name, lastname: $json.last_name, company: $json.company, website: $json.domain, phone: $json.phone, hs_lead_status: $json.lead_status, hubspot_owner_id: $json.owner_id }).filter(([k, v]) => v)) }] }) }}"
+   },
+   "id": "aa0462cc-1075-55d0-9f97-cfb0c40306f2",
+   "name": "Upsert contact (HubSpot)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2860,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.hubapi.com/crm/v3/objects/notes",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "hubspotAppToken",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ properties: { hs_timestamp: new Date().toISOString(), hs_note_body: `<p><b>Lead score ${$('Apply scoring rules').item.json.score}/100 (${$('Apply scoring rules').item.json.tier})</b></p><p>${$('Apply scoring rules').item.json.summary}</p><ul>${$('Apply scoring rules').item.json.reasons.map(r => '<li>' + r + '</li>').join('')}</ul>${$('Apply scoring rules').item.json.red_flags.length ? '<p>Flags: ' + $('Apply scoring rules').item.json.red_flags.join('; ') + '</p>' : ''}<p>Next step: ${$('Apply scoring rules').item.json.next_step}</p><p>Message: ${$('Apply scoring rules').item.json.message}</p>` }, associations: [{ to: { id: $json.results[0].id }, types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 202 }] }] }) }}"
+   },
+   "id": "6c24202e-731b-5e84-8497-ccce01f5465a",
+   "name": "Log qualification (HubSpot note)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    3120,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "rules": {
+     "values": [
+      {
+       "outputKey": "hot",
+       "renameOutput": true,
+       "conditions": {
+        "options": {
+         "leftValue": "",
+         "caseSensitive": true,
+         "typeValidation": "strict"
+        },
+        "combinator": "and",
+        "conditions": [
+         {
+          "id": "739ed616-844a-594e-bba9-a0a825f21116",
+          "operator": {
+           "type": "string",
+           "operation": "equals"
+          },
+          "leftValue": "={{ $('Apply scoring rules').item.json.tier }}",
+          "rightValue": "hot"
+         }
+        ]
+       }
+      },
+      {
+       "outputKey": "warm",
+       "renameOutput": true,
+       "conditions": {
+        "options": {
+         "leftValue": "",
+         "caseSensitive": true,
+         "typeValidation": "strict"
+        },
+        "combinator": "and",
+        "conditions": [
+         {
+          "id": "82b203fb-e10e-5d0a-baf0-15df73a04d52",
+          "operator": {
+           "type": "string",
+           "operation": "equals"
+          },
+          "leftValue": "={{ $('Apply scoring rules').item.json.tier }}",
+          "rightValue": "warm"
+         }
+        ]
+       }
+      },
+      {
+       "outputKey": "nurture",
+       "renameOutput": true,
+       "conditions": {
+        "options": {
+         "leftValue": "",
+         "caseSensitive": true,
+         "typeValidation": "strict"
+        },
+        "combinator": "and",
+        "conditions": [
+         {
+          "id": "510def37-206e-55d8-8143-391487f91d99",
+          "operator": {
+           "type": "string",
+           "operation": "equals"
+          },
+          "leftValue": "={{ $('Apply scoring rules').item.json.tier }}",
+          "rightValue": "nurture"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "options": {}
+   },
+   "id": "db47d060-810a-5d53-9f99-f9bf04209729",
+   "name": "Route by tier",
+   "type": "n8n-nodes-base.switch",
+   "typeVersion": 3.2,
+   "position": [
+    3380,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://www.googleapis.com/calendar/v3/freeBusy",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "googleCalendarOAuth2Api",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ timeMin: $now.toISO(), timeMax: $now.plus({ days: 8 }).toISO(), timeZone: $('Config').first().json.timezone, items: [{ id: $('Config').first().json.calendar_id }] }) }}"
+   },
+   "id": "15761c09-6037-51ab-9a7b-f3d1fb260252",
+   "name": "Check calendar (free/busy)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    3640,
+    -200
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Free slots in business hours over the next 5 working days, at least 2 hours out, one per day.\nconst cfg = $('Config').first().json, tz = cfg.timezone, mins = Number(cfg.meeting_minutes || 30);\nconst busy = ((($json.calendars || {})[cfg.calendar_id] || {}).busy || []).map(b => [DateTime.fromISO(b.start).toMillis(), DateTime.fromISO(b.end).toMillis()]);\nconst free = (s, e) => !busy.some(([bs, be]) => s < be && e > bs);\nconst earliest = $now.setZone(tz).plus({ hours: 2 }).toMillis(), out = [];\nlet day = $now.setZone(tz).startOf('day'), days = 0;\nwhile (out.length < 3 && days < 5) {\n  if (day.weekday <= 5) {\n    days++;\n    for (let t = day.set({ hour: Number(cfg.business_start_hour) }); t.plus({ minutes: mins }) <= day.set({ hour: Number(cfg.business_end_hour) }); t = t.plus({ minutes: 30 })) {\n      const s = t.toMillis(), e = t.plus({ minutes: mins }).toMillis();\n      if (s >= earliest && free(s, e)) { out.push({ start: t.toISO(), end: t.plus({ minutes: mins }).toISO(), label: t.toFormat(\"ccc d LLL, h:mm a ZZZZ\") }); break; }\n    }\n  }\n  day = day.plus({ days: 1 });\n}\nreturn { json: { slots: out, has_slot: out.length > 0 } };\n",
+    "mode": "runOnceForEachItem"
+   },
+   "id": "e1b68d7e-5af5-543f-b25b-dceb5b444764",
+   "name": "Pick 3 meeting times",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    3900,
+    -200
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "https://api.hubapi.com/crm/v3/objects/deals",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "hubspotAppToken",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ properties: Object.fromEntries(Object.entries({ dealname: ($('Apply scoring rules').item.json.company || $('Apply scoring rules').item.json.name || $('Apply scoring rules').item.json.email) + ' (inbound)', pipeline: $('Config').first().json.deal_pipeline, dealstage: $('Config').first().json.deal_stage, hubspot_owner_id: $('Apply scoring rules').item.json.owner_id }).filter(([k, v]) => v)), associations: [{ to: { id: $('Upsert contact (HubSpot)').item.json.results[0].id }, types: [{ associationCategory: 'HUBSPOT_DEFINED', associationTypeId: 3 }] }] }) }}"
+   },
+   "id": "d316b731-422f-5d36-8938-148a7b5c35b6",
+   "name": "Create deal (HubSpot)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    4160,
+    -200
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "c6a2712c-be36-529c-85e9-2f2f72c0ec7d",
+       "leftValue": "={{ $('Pick 3 meeting times').item.json.has_slot }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "c6a2712c-be36-529c-85e9-2f2f72c0ec7d",
+   "name": "Time found?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    4680,
+    -200
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "=https://www.googleapis.com/calendar/v3/calendars/{{ encodeURIComponent($('Config').first().json.calendar_id) }}/events",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "googleCalendarOAuth2Api",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ summary: 'Hold: intro call with ' + ($('Apply scoring rules').item.json.name || $('Apply scoring rules').item.json.email) + ($('Apply scoring rules').item.json.company ? ' (' + $('Apply scoring rules').item.json.company + ')' : ''), status: 'tentative', description: 'Lead score ' + $('Apply scoring rules').item.json.score + '/100. ' + $('Apply scoring rules').item.json.summary + '\\nOffered to the lead by email; release the hold if they pick another time.', start: { dateTime: $('Pick 3 meeting times').item.json.slots[0].start }, end: { dateTime: $('Pick 3 meeting times').item.json.slots[0].end } }) }}"
+   },
+   "id": "a506d3dc-b36f-5ebf-b6cd-c9cfd56fc77e",
+   "name": "Hold first time (Calendar)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    4680,
+    -400
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "fromEmail": "={{ $('Config').first().json.from_email }}",
+    "toEmail": "={{ $('Apply scoring rules').item.json.email }}",
+    "subject": "={{ $('Apply scoring rules').item.json.reply_subject }}",
+    "emailFormat": "text",
+    "text": "=Hi {{ $('Apply scoring rules').item.json.first_name || 'there' }},\n\n{{ $('Apply scoring rules').item.json.reply_body }}\n\n{{ $('Pick 3 meeting times').item.json.has_slot ? 'Would one of these work for a ' + $('Config').first().json.meeting_minutes + '-minute call?\\n' + $('Pick 3 meeting times').item.json.slots.map(s => '- ' + s.label).join('\\n') + '\\n\\nOr pick any time that suits you: ' : 'Pick a time that suits you here: ' }}{{ $('Config').first().json.booking_link }}\n\n{{ $('Config').first().json.signature }}",
+    "options": {}
+   },
+   "id": "5dfcec29-b104-5113-8884-9df49ed19ff4",
+   "name": "Reply with times",
+   "type": "n8n-nodes-base.emailSend",
+   "typeVersion": 2.1,
+   "position": [
+    4940,
+    -200
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Config').first().json.slack_webhook_url }}",
+    "options": {},
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ text: `:fire: *Hot lead, ${$('Apply scoring rules').item.json.score}/100*: ${$('Apply scoring rules').item.json.name || $('Apply scoring rules').item.json.email}${$('Apply scoring rules').item.json.company ? ' at ' + $('Apply scoring rules').item.json.company : ''} (${$('Apply scoring rules').item.json.segment}${$('Apply scoring rules').item.json.industry ? ', ' + $('Apply scoring rules').item.json.industry : ''})${'\\n'}${$('Apply scoring rules').item.json.summary}\\n• ${$('Apply scoring rules').item.json.reasons.join('\\n• ')}\\nOwner: ${$('Apply scoring rules').item.json.owner_name || 'unassigned'}. Times offered: ${$('Pick 3 meeting times').item.json.slots.map(s => s.label).join(' / ') || 'booking link only'}${$('Apply scoring rules').item.json.after_hours ? '. Arrived after hours: the reply has gone out, call first thing.' : ''}\\nNext: ${$('Apply scoring rules').item.json.next_step}\\nHubSpot: https://app.hubspot.com/contacts/${$('Config').first().json.hubspot_portal_id}/record/0-1/${$('Upsert contact (HubSpot)').item.json.results[0].id}` }) }}"
+   },
+   "id": "d754b9bf-0a1f-5654-9eff-49bf59452c61",
+   "name": "Hot lead (Slack)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    5200,
+    -200
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "fromEmail": "={{ $('Config').first().json.from_email }}",
+    "toEmail": "={{ $('Apply scoring rules').item.json.email }}",
+    "subject": "={{ $('Apply scoring rules').item.json.reply_subject }}",
+    "emailFormat": "text",
+    "text": "=Hi {{ $('Apply scoring rules').item.json.first_name || 'there' }},\n\n{{ $('Apply scoring rules').item.json.reply_body }}\n\nIf it would help to talk it through, pick a time here: {{ $('Config').first().json.booking_link }}\n\n{{ $('Config').first().json.signature }}",
+    "options": {}
+   },
+   "id": "64c3429b-e253-5865-8e81-5b94525ab336",
+   "name": "Reply with booking link",
+   "type": "n8n-nodes-base.emailSend",
+   "typeVersion": 2.1,
+   "position": [
+    3640,
+    200
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Config').first().json.slack_webhook_url }}",
+    "options": {},
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ text: `Warm lead, ${$('Apply scoring rules').item.json.score}/100: ${$('Apply scoring rules').item.json.name || $('Apply scoring rules').item.json.email}${$('Apply scoring rules').item.json.company ? ' at ' + $('Apply scoring rules').item.json.company : ''}. ${$('Apply scoring rules').item.json.summary} Next: ${$('Apply scoring rules').item.json.next_step.replace(/\\.$/, '')}. Owner: ${$('Apply scoring rules').item.json.owner_name || 'unassigned'}. Booking link sent.` }) }}"
+   },
+   "id": "2293ffac-4d59-5d67-91d9-d8b83ada10db",
+   "name": "Warm lead (Slack)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    3900,
+    200
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueRegularOutput"
+  },
+  {
+   "parameters": {
+    "fromEmail": "={{ $('Config').first().json.from_email }}",
+    "toEmail": "={{ $('Apply scoring rules').item.json.email }}",
+    "subject": "={{ $('Apply scoring rules').item.json.reply_subject }}",
+    "emailFormat": "text",
+    "text": "=Hi {{ $('Apply scoring rules').item.json.first_name || 'there' }},\n\n{{ $('Apply scoring rules').item.json.reply_body }}\n\n{{ $('Config').first().json.signature }}",
+    "options": {}
+   },
+   "id": "78626764-9fd1-531e-ada7-c6a3f483efee",
+   "name": "Reply and nurture",
+   "type": "n8n-nodes-base.emailSend",
+   "typeVersion": 2.1,
+   "position": [
+    3640,
+    400
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// One alert for every failure path. $prevNode names the step that failed.\nconst cfg = $('Config').first().json;\nreturn $input.all().map(i => {\n  const e = i.json.error;\n  const msg = String((typeof e === 'string' ? e : e && (e.description || e.message)) || i.json.message || JSON.stringify(i.json)).slice(0, 400);\n  return { json: { text: `${cfg.workflow_label}: ${$prevNode.name} failed${i.json.ref ? ' for ' + i.json.ref : ''}. ${msg}` } };\n});\n"
+   },
+   "id": "1508a4cb-217d-5c90-a275-5eb8aeab079c",
+   "name": "Describe failure",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    5200,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Config').first().json.slack_webhook_url }}",
+    "options": {},
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ text: $json.text }) }}"
+   },
+   "id": "dcda023c-7a50-56ae-aa99-031cf09908aa",
+   "name": "Failure alert",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    5460,
+    400
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000
+  },
+  {
+   "parameters": {
+    "content": "## AI lead qualifier: research, score and route every inbound lead\nAn AI agent reads each new lead, researches the company's website, checks HubSpot for history, and scores fit, intent and authority. Your rules then decide the tier: **hot** leads get a deal, three real free times from your calendar (the first one held), a tailored reply and a Slack alert to the right owner; **warm** leads get a reply with your booking link; **nurture** leads get a polite reply; spam is dropped. Existing customers skip the AI and go straight to their owner. Every outside call retries and any failure reaches Slack.\n\n**You need:** n8n 1.110+ · OpenAI API key · HubSpot private app token (scopes: crm.objects.contacts, companies and deals read/write) · Google Calendar · SMTP · Slack incoming webhook\n\n**Setup**\n1. Add credentials: OpenAI on **OpenAI chat model**; HubSpot App Token on the HubSpot steps and **Look up company in HubSpot**; Google Calendar OAuth2 on the two calendar steps; SMTP on the three reply steps.\n2. Fill in **Config**: what you sell, your ideal customer, thresholds, owners, calendar, booking link, signature, Slack URL.\n3. Click **Test workflow** to run the sample lead end to end.\n4. Share the **Lead form** URL, or point your site's form at **Website form (webhook)** and set the `field_*` names to match. Activate.\n\nNo credentials are included. More templates: n8n.io/creators/pushbuild",
+    "height": 1320,
+    "width": 1040,
+    "color": 7
+   },
+   "id": "407b68e7-d279-5d63-b863-d181f56b6915",
+   "name": "Note 1",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -1120,
+    -620
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 1 · Capture\nThree ways in: the built-in n8n form, your own site's form via webhook, or the sample lead for testing.",
+    "height": 720,
+    "width": 520,
+    "color": 5
+   },
+   "id": "9d8f17a5-c8e2-5e84-88e3-0e88973616c7",
+   "name": "Note 2",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -80,
+    -220
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 2 · Clean up and check\n**Normalize lead** maps your fields, spots personal and throwaway email addresses and sales-pitch spam. **Skip repeats** ignores the same person twice within `dedupe_hours`. HubSpot is checked first: existing customers go straight to Slack for their owner.",
+    "height": 720,
+    "width": 1560,
+    "color": 4
+   },
+   "id": "fe098385-ec4c-5e13-979f-636a27dd584e",
+   "name": "Note 3",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    440,
+    -220
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 3 · AI agent with tools\nThe agent researches the company's site, looks the company up in HubSpot, thinks it through, and returns a structured score, reasons, red flags, a next step and a reply draft. Tell it what you sell and who your ideal customer is in **Config**.",
+    "height": 720,
+    "width": 1560,
+    "color": 6
+   },
+   "id": "db48ece5-f92d-5a47-8e63-6aed73c41191",
+   "name": "Note 4",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    1740,
+    -220
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 4 · Your rules decide\n**Apply scoring rules** sets the tier from the score and your thresholds, caps personal email addresses at warm unless the score is 90+, assigns an owner by company size from `owners_json`, and flags after-hours leads. The contact is upserted and the AI's reasoning is logged as a HubSpot note.",
+    "height": 320,
+    "width": 1300,
+    "color": 3
+   },
+   "id": "65d94963-0ab8-5d37-99f1-453b5e56e619",
+   "name": "Note 5",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    2520,
+    -420
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 5 · Hot leads\nReads your calendar's free/busy, picks one free time on each of the next three working days, opens a deal, holds the first time as a tentative event, emails the lead the three times plus your booking link, and alerts Slack with the score, reasons and owner.",
+    "height": 520,
+    "width": 1820,
+    "color": 2
+   },
+   "id": "df8489e4-fb0d-5694-b2ca-8426d51be04f",
+   "name": "Note 6",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    3820,
+    -620
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 6 · Warm and nurture\nWarm leads get the tailored reply and your booking link, and Slack is told. Nurture leads get a polite reply and stay in HubSpot with the nurture lead status.",
+    "height": 520,
+    "width": 780,
+    "color": 5
+   },
+   "id": "723aa0f3-6fb3-502f-b75a-87aff0cfc8c6",
+   "name": "Note 7",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    3820,
+    -20
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 7 · Failure alert\nEvery HubSpot, calendar, email and AI step retries 3 times. Anything that still fails posts the step, the lead and the reason to Slack.",
+    "height": 320,
+    "width": 520,
+    "color": 3
+   },
+   "id": "26042f21-b203-599b-9c85-26d0192a797e",
+   "name": "Note 8",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    5120,
+    180
+   ]
+  }
+ ],
+ "connections": {
+  "OpenAI chat model": {
+   "ai_languageModel": [
+    [
+     {
+      "node": "Qualify lead (AI agent)",
+      "type": "ai_languageModel",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Qualification schema": {
+   "ai_outputParser": [
+    [
+     {
+      "node": "Qualify lead (AI agent)",
+      "type": "ai_outputParser",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Research company website": {
+   "ai_tool": [
+    [
+     {
+      "node": "Qualify lead (AI agent)",
+      "type": "ai_tool",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Look up company in HubSpot": {
+   "ai_tool": [
+    [
+     {
+      "node": "Qualify lead (AI agent)",
+      "type": "ai_tool",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Think": {
+   "ai_tool": [
+    [
+     {
+      "node": "Qualify lead (AI agent)",
+      "type": "ai_tool",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Describe failure": {
+   "main": [
+    [
+     {
+      "node": "Failure alert",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Lead form": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Website form (webhook)": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Test with sample data": {
+   "main": [
+    [
+     {
+      "node": "Sample lead",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Sample lead": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Config": {
+   "main": [
+    [
+     {
+      "node": "Normalize lead",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Normalize lead": {
+   "main": [
+    [
+     {
+      "node": "Skip repeats",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Skip repeats": {
+   "main": [
+    [
+     {
+      "node": "Valid lead?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Valid lead?": {
+   "main": [
+    [
+     {
+      "node": "Find contact (HubSpot)",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Not a lead: ignore",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Find contact (HubSpot)": {
+   "main": [
+    [
+     {
+      "node": "Merge CRM record",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Merge CRM record": {
+   "main": [
+    [
+     {
+      "node": "Existing customer?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Existing customer?": {
+   "main": [
+    [
+     {
+      "node": "Customer message (Slack)",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Qualify lead (AI agent)",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Qualify lead (AI agent)": {
+   "main": [
+    [
+     {
+      "node": "AI answered?",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "AI answered?": {
+   "main": [
+    [
+     {
+      "node": "Apply scoring rules",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Apply scoring rules": {
+   "main": [
+    [
+     {
+      "node": "Spam?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Spam?": {
+   "main": [
+    [
+     {
+      "node": "Spam: no action",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Upsert contact (HubSpot)",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Upsert contact (HubSpot)": {
+   "main": [
+    [
+     {
+      "node": "Log qualification (HubSpot note)",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Log qualification (HubSpot note)": {
+   "main": [
+    [
+     {
+      "node": "Route by tier",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Route by tier": {
+   "main": [
+    [
+     {
+      "node": "Check calendar (free/busy)",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Reply with booking link",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Reply and nurture",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Check calendar (free/busy)": {
+   "main": [
+    [
+     {
+      "node": "Pick 3 meeting times",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Pick 3 meeting times": {
+   "main": [
+    [
+     {
+      "node": "Create deal (HubSpot)",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Create deal (HubSpot)": {
+   "main": [
+    [
+     {
+      "node": "Time found?",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Time found?": {
+   "main": [
+    [
+     {
+      "node": "Hold first time (Calendar)",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Reply with times",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Hold first time (Calendar)": {
+   "main": [
+    [
+     {
+      "node": "Reply with times",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Reply with times": {
+   "main": [
+    [
+     {
+      "node": "Hot lead (Slack)",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Reply with booking link": {
+   "main": [
+    [
+     {
+      "node": "Warm lead (Slack)",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Reply and nurture": {
+   "main": [
+    [],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "active": false,
+ "settings": {
+  "executionOrder": "v1"
+ },
+ "meta": {
+  "templateCredsSetupCompleted": false
+ },
+ "tags": []
+}
