@@ -1,0 +1,915 @@
+{
+ "name": "Catch n8n workflows that succeed but do nothing: empty runs, missed schedules and missing records, with Slack, email and a log sheet",
+ "nodes": [
+  {
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "minutes",
+       "minutesInterval": 15
+      }
+     ]
+    }
+   },
+   "id": "5d66036a-580b-54a9-afb2-4fd52b8abd6d",
+   "name": "Every 15 minutes",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    0,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "cronExpression",
+       "expression": "0 8 * * *"
+      }
+     ]
+    }
+   },
+   "id": "c378c6c6-3666-5466-a59e-ef7e4394ef44",
+   "name": "Daily summary (8am)",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    0,
+    200
+   ]
+  },
+  {
+   "parameters": {},
+   "id": "2a50090d-71c6-5b0f-92f5-a143e71b9913",
+   "name": "Test with sample data",
+   "type": "n8n-nodes-base.manualTrigger",
+   "typeVersion": 1,
+   "position": [
+    0,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "assignments": {
+     "assignments": [
+      {
+       "id": "c97d56d2-e236-576f-84cc-5d4f0e856d9f",
+       "name": "workflow_label",
+       "value": "Silent failure monitor",
+       "type": "string"
+      },
+      {
+       "id": "76eb7a14-dfda-553e-96f7-69a0ea563f46",
+       "name": "n8n_base_url",
+       "value": "https://your-n8n.example.com",
+       "type": "string"
+      },
+      {
+       "id": "75f74fc9-4c66-5b11-8ee4-28d652a3d486",
+       "name": "checks_json",
+       "value": "[{\"workflow_id\": \"REPLACE_WITH_WORKFLOW_ID\", \"name\": \"Nightly order sync\", \"max_gap_minutes\": 1500, \"count_node\": \"Upsert orders\", \"min_items\": 1, \"record_check_url\": \"\", \"record_min\": 1, \"alert_on_errors\": true}, {\"workflow_id\": \"REPLACE_WITH_WORKFLOW_ID\", \"name\": \"Website leads to CRM\", \"max_gap_minutes\": 0, \"count_node\": \"\", \"min_items\": 1, \"record_check_url\": \"\", \"record_min\": 1, \"alert_on_errors\": false}]",
+       "type": "string"
+      },
+      {
+       "id": "91c93c7a-f380-5962-9867-e11b5eea13e0",
+       "name": "lookback_hours",
+       "value": 24,
+       "type": "number"
+      },
+      {
+       "id": "3de8d60f-9fd0-5076-aec2-6427fa3f238b",
+       "name": "timezone",
+       "value": "America/New_York",
+       "type": "string"
+      },
+      {
+       "id": "a82ebeea-c128-530d-b0d6-7119c88ef1eb",
+       "name": "slack_webhook_url",
+       "value": "https://hooks.slack.com/services/REPLACE_ME",
+       "type": "string"
+      },
+      {
+       "id": "fff8ae49-bb15-5680-9d28-c44d534731f7",
+       "name": "alert_email",
+       "value": "ops@yourbusiness.com",
+       "type": "string"
+      },
+      {
+       "id": "02d0fa5d-0450-54f1-87b4-18208d4d5ebf",
+       "name": "from_email",
+       "value": "n8n@yourbusiness.com",
+       "type": "string"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "id": "74d2c01f-6470-5050-bdb0-99052e3bf328",
+   "name": "Config",
+   "type": "n8n-nodes-base.set",
+   "typeVersion": 3.4,
+   "position": [
+    260,
+    200
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "3de89be0-3b61-576e-abaf-d8e3800aefb3",
+       "leftValue": "={{ $('Daily summary (8am)').isExecuted }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "3de89be0-3b61-576e-abaf-d8e3800aefb3",
+   "name": "Summary run?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    520,
+    200
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// A daily message proves the monitor itself is alive. If it stops arriving, the monitor is the thing that failed.\nconst sd = $getWorkflowStaticData('global'), day = Date.now() - 864e5;\nconst recent = (sd.history || []).filter(h => h.t > day), checked = (sd.checked || []).filter(t => t > day).length;\nconst by = {}; for (const h of recent) by[h.kind] = (by[h.kind] || 0) + 1;\nconst parts = Object.entries(by).map(([k, n]) => `${n} ${k.replace(/_/g, ' ')}`);\nreturn [{ json: { text: `${$('Config').first().json.workflow_label}: ${checked} checks in the last 24 hours. ${parts.length ? 'Problems found: ' + parts.join(', ') + '.' : 'No silent failures found.'}` } }];\n"
+   },
+   "id": "3f8da962-b6c6-52a1-9c3c-5f324b756a40",
+   "name": "Build daily summary",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    780,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Config').first().json.slack_webhook_url }}",
+    "options": {},
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ text: $json.text }) }}"
+   },
+   "id": "220a5609-42a1-55e8-b3b2-2bd2612e3660",
+   "name": "Daily summary (Slack)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1040,
+    400
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "db08ae67-54dc-51cd-93a9-6c0cbc6b122d",
+       "leftValue": "={{ $('Test with sample data').isExecuted }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "db08ae67-54dc-51cd-93a9-6c0cbc6b122d",
+   "name": "Sample run?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    780,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// checks_json in Config lists the workflows to watch. See the sticky note for every field.\nlet checks = [];\ntry { checks = JSON.parse($('Config').first().json.checks_json); } catch (e) { throw new Error('checks_json in Config is not valid JSON: ' + e.message); }\nreturn checks.filter(c => c.workflow_id && !/^REPLACE/.test(c.workflow_id)).map(c => ({ json: Object.assign({ max_gap_minutes: 0, count_node: '', min_items: 1,\n  record_check_url: '', record_min: 1, alert_on_errors: false }, c, { ref: c.name || c.workflow_id }) }));\n"
+   },
+   "id": "87a1aa29-cd68-5d87-ae68-ec936b9e8c34",
+   "name": "One item per check",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1040,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "={{ $('Config').first().json.n8n_base_url.replace(/\\/$/, '') }}/api/v1/workflows/{{ $json.workflow_id }}",
+    "options": {},
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth"
+   },
+   "id": "e9fd563a-4540-54f4-9f77-49061eb382a5",
+   "name": "Get workflow",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1300,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "={{ $('Config').first().json.n8n_base_url.replace(/\\/$/, '') }}/api/v1/executions",
+    "options": {},
+    "authentication": "genericCredentialType",
+    "genericAuthType": "httpHeaderAuth",
+    "sendQuery": true,
+    "queryParameters": {
+     "parameters": [
+      {
+       "name": "workflowId",
+       "value": "={{ $('One item per check').item.json.workflow_id }}"
+      },
+      {
+       "name": "limit",
+       "value": "50"
+      },
+      {
+       "name": "includeData",
+       "value": "true"
+      }
+     ]
+    }
+   },
+   "id": "ef6cca19-59b1-537b-a0f9-e19a5965389c",
+   "name": "Get recent runs",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1560,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "cef6cadf-789a-567d-a744-edf121b86e3f",
+       "leftValue": "={{ $('One item per check').item.json.record_check_url }}",
+       "operator": {
+        "type": "string",
+        "operation": "notEmpty",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "cef6cadf-789a-567d-a744-edf121b86e3f",
+   "name": "Record check set?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    1820,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "={{ $('One item per check').item.json.record_check_url }}",
+    "options": {}
+   },
+   "id": "a15e5303-9b8e-50d9-aedb-aac6fa06e596",
+   "name": "Check expected record",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2080,
+    -200
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// One item per check with everything Evaluate needs: the check, the workflow and its recent runs, and the record count if set.\nconst check = $('One item per check').item.json, wfj = $('Get workflow').item.json, r = $('Get recent runs').item.json;\nlet record = null;\nif (check.record_check_url) {\n  const b = $('Check expected record').item.json;\n  record = Array.isArray(b) ? b.length : Number(b.count ?? b.total ?? b.total_count ?? (b.data || b.results || b.items || []).length);\n}\nreturn { json: { check, workflow: { name: wfj.name, active: wfj.active }, runs: r.data || [], record } };\n",
+    "mode": "runOnceForEachItem"
+   },
+   "id": "9c50036f-2106-5d41-ae84-995940e889b5",
+   "name": "Gather",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2340,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Three watched workflows with the problems this catches, shaped like the n8n API. Run \"Test workflow\" to see the alerts.\nconst ago = m => new Date(Date.now() - m * 60000).toISOString();\nconst run = (id, m, status, node, n) => ({ id, status, mode: 'trigger', startedAt: ago(m), stoppedAt: ago(m - 1),\n  data: { resultData: { lastNodeExecuted: node, runData: { [node]: [{ data: { main: [Array.from({ length: n }, (_, i) => ({ json: { i } }))] } }] } } } });\nconst base = { max_gap_minutes: 0, count_node: '', min_items: 1, record_check_url: '', record_min: 1, alert_on_errors: true };\nreturn [\n  { json: { check: Object.assign({}, base, { workflow_id: '101', name: 'Nightly order sync', count_node: 'Upsert orders', ref: 'Nightly order sync' }),\n    workflow: { name: 'Nightly order sync', active: true }, runs: [run('9001', 30, 'success', 'Upsert orders', 0), run('8990', 1470, 'success', 'Upsert orders', 42)], record: null } },\n  { json: { check: Object.assign({}, base, { workflow_id: '102', name: 'Hourly stock update', max_gap_minutes: 90, ref: 'Hourly stock update' }),\n    workflow: { name: 'Hourly stock update', active: true }, runs: [run('8700', 300, 'success', 'Update stock', 18)], record: null } },\n  { json: { check: Object.assign({}, base, { workflow_id: '103', name: 'Website leads to CRM', record_check_url: 'https://example.com/leads-today', record_min: 1, ref: 'Website leads to CRM' }),\n    workflow: { name: 'Website leads to CRM', active: false }, runs: [run('8650', 600, 'success', 'Create contact', 1)], record: 0 } }\n];\n"
+   },
+   "id": "3f258c61-a154-5886-8331-313ab2461e41",
+   "name": "Sample runs",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2340,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Each finding has a key, so the same problem is reported once, not every 15 minutes.\nconst cfg = $('Config').first().json, base = cfg.n8n_base_url.replace(/\\/$/, ''), now = Date.now();\nconst since = now - Number(cfg.lookback_hours || 24) * 36e5, out = [];\nconst count = (run, node) => {\n  const rd = ((run.data || {}).resultData || {}).runData || {};\n  const name = node || ((run.data || {}).resultData || {}).lastNodeExecuted;\n  if (!name || !rd[name]) return { name: name || 'last step', n: null };\n  return { name, n: rd[name].reduce((s, r) => s + (((r.data || {}).main || [])[0] || []).length, 0) };\n};\nfor (const it of $input.all()) {\n  const { check: c, workflow: wf, runs, record } = it.json, name = c.name || wf.name || c.workflow_id;\n  const add = (kind, detail, key, exec) => out.push({ json: { time: new Date().toISOString(), workflow: name, workflow_id: c.workflow_id, kind, detail, key,\n    link: exec ? `${base}/workflow/${c.workflow_id}/executions/${exec}` : `${base}/workflow/${c.workflow_id}` } });\n  if (wf.active === false) add('switched_off', 'The workflow is inactive, so its triggers will not fire.', `off:${c.workflow_id}:${new Date().toISOString().slice(0, 10)}`);\n  const last = runs.reduce((m, r) => Math.max(m, Date.parse(r.startedAt) || 0), 0);\n  if (Number(c.max_gap_minutes) > 0 && now - last > c.max_gap_minutes * 60000)\n    add('missed_schedule', last ? `No run for ${Math.round((now - last) / 60000)} minutes (expected at least every ${c.max_gap_minutes}).` : 'No runs found at all.', `gap:${c.workflow_id}:${last}`);\n  for (const r of runs) {\n    if ((Date.parse(r.startedAt) || 0) < since) continue;\n    r.status = r.status || (r.finished ? 'success' : r.stoppedAt ? 'error' : 'running');\n    if (['error', 'crashed'].includes(r.status)) { if (c.alert_on_errors) add('failed_run', `The run ended with status \"${r.status}\".`, `err:${r.id}`, r.id); continue; }\n    if (r.status !== 'success') continue;\n    const k = count(r, c.count_node);\n    if (k.n === null) add('empty_run', `Finished green, but \"${k.name}\" never ran (a filter or IF stopped everything).`, `empty:${r.id}`, r.id);\n    else if (k.n < Number(c.min_items)) add('empty_run', `Finished green with ${k.n} item${k.n === 1 ? '' : 's'} out of \"${k.name}\" (expected at least ${c.min_items}).`, `empty:${r.id}`, r.id);\n  }\n  if (record !== null && !(record >= Number(c.record_min)))\n    add('missing_record', `Expected at least ${c.record_min} record${c.record_min == 1 ? '' : 's'} at the check URL, found ${isNaN(record) ? 'none' : record}.`, `rec:${c.workflow_id}:${new Date().toISOString().slice(0, 13)}`);\n}\nreturn out;\n"
+   },
+   "id": "6c300f57-6fd1-55a7-96f0-21e72b2d9693",
+   "name": "Find silent failures",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2600,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Drops findings already reported (keys kept in static data, saved on production runs only) and records the history for the daily summary.\nconst sd = $getWorkflowStaticData('global'), seen = sd.seen || [], now = Date.now(), out = [];\nsd.checked = (sd.checked || []).filter(t => now - t < 864e5).concat([now]).slice(-200);\nfor (const i of $input.all()) { if (seen.includes(i.json.key)) continue; seen.push(i.json.key); out.push({ json: i.json }); }\nsd.seen = seen.slice(-5000);\nsd.history = (sd.history || []).filter(h => now - h.t < 7 * 864e5).concat(out.map(o => ({ t: now, kind: o.json.kind, name: o.json.workflow }))).slice(-2000);\nreturn out;\n"
+   },
+   "id": "ee47e46c-47d3-5198-84e6-9f7e782e01ec",
+   "name": "Only new problems",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2860,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "operation": "append",
+    "documentId": {
+     "__rl": true,
+     "mode": "url",
+     "value": "https://docs.google.com/spreadsheets/d/REPLACE_ME/edit"
+    },
+    "sheetName": {
+     "__rl": true,
+     "mode": "name",
+     "value": "Silent failures"
+    },
+    "options": {},
+    "columns": {
+     "mappingMode": "autoMapInputData",
+     "value": {},
+     "matchingColumns": [],
+     "schema": []
+    }
+   },
+   "id": "5e0d1355-2c6a-54ac-abd0-b8ae066c6d6f",
+   "name": "Log to sheet",
+   "type": "n8n-nodes-base.googleSheets",
+   "typeVersion": 4.5,
+   "position": [
+    3120,
+    200
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "\nconst L = { empty_run: 'Empty run', missed_schedule: 'Missed schedule', missing_record: 'Missing record', switched_off: 'Switched off', failed_run: 'Failed run' };\nconst rows = $input.all().map(i => i.json);\nconst lines = rows.map(r => `• *${L[r.kind] || r.kind}*: ${r.workflow}. ${r.detail} <${r.link}|Open>`);\nreturn [{ json: { count: rows.length, text: `${$('Config').first().json.workflow_label}: ${rows.length} silent failure${rows.length === 1 ? '' : 's'}\\n` + lines.join('\\n'),\n  email: rows.map(r => `${L[r.kind] || r.kind}: ${r.workflow}\\n${r.detail}\\n${r.link}`).join('\\n\\n') } }];\n"
+   },
+   "id": "fb4017bc-433f-5f63-b2d0-6393c5a01962",
+   "name": "Build alert",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    3120,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Config').first().json.slack_webhook_url }}",
+    "options": {},
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ text: $json.text }) }}"
+   },
+   "id": "60dad1ab-9eb3-58e5-a049-7bfa1810b2e6",
+   "name": "Alert (Slack)",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    3380,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "fromEmail": "={{ $('Config').first().json.from_email }}",
+    "toEmail": "={{ $('Config').first().json.alert_email }}",
+    "subject": "={{ $('Build alert').first().json.count }} n8n workflow(s) ran without doing their job",
+    "emailFormat": "text",
+    "text": "=These workflows finished without an error but did not do what they should:\n\n{{ $('Build alert').first().json.email }}\n\nSent by {{ $('Config').first().json.workflow_label }}.",
+    "options": {}
+   },
+   "id": "c90d6c41-0785-51e6-9b2a-549b9a5909da",
+   "name": "Alert (email)",
+   "type": "n8n-nodes-base.emailSend",
+   "typeVersion": 2.1,
+   "position": [
+    3380,
+    200
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// One alert for every failure path. $prevNode names the step that failed.\nconst cfg = $('Config').first().json;\nreturn $input.all().map(i => {\n  const e = i.json.error;\n  const msg = String((typeof e === 'string' ? e : e && (e.description || e.message)) || i.json.message || JSON.stringify(i.json)).slice(0, 400);\n  return { json: { text: `${cfg.workflow_label}: ${$prevNode.name} failed${i.json.ref ? ' for ' + i.json.ref : ''}. ${msg}` } };\n});\n"
+   },
+   "id": "c6d91833-8e84-509a-a137-3839849eeace",
+   "name": "Describe failure",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    3380,
+    600
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Config').first().json.slack_webhook_url }}",
+    "options": {},
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ text: $json.text }) }}"
+   },
+   "id": "383c161a-a7d3-5b55-bf73-1c19c8cb94da",
+   "name": "Failure alert",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    3640,
+    600
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000
+  },
+  {
+   "parameters": {
+    "content": "## Silent failure monitor for n8n\nSome failures never turn a run red: a filter drops every item, an API returns an empty page, a schedule stops firing, someone switches a workflow off. This workflow watches the workflows you list and tells you when they **succeeded but did nothing**.\n\nIt flags: **empty runs** (fewer items than expected out of a step you name), **missed schedules** (no run within the gap you set), **missing records** (a URL you give returns no rows), **switched-off workflows**, and optionally **failed runs**. Each problem is reported once to Slack and email and logged to a Google Sheet. A daily summary proves the monitor itself is running.\n\n**You need:** n8n with the public API on · an n8n API key · a Slack incoming webhook · SMTP · Google Sheets\n\n**Setup**\n1. n8n Settings → n8n API → create a key. Add a **Header Auth** credential: name `X-N8N-API-KEY`, value the key. Select it on **Get workflow** and **Get recent runs**.\n2. Fill in **Config**: your n8n URL, the Slack URL, the alert email, and `checks_json` (see the note on the right).\n3. Add SMTP to **Alert (email)** and Google Sheets to **Log to sheet** (a tab named `Silent failures`).\n4. Click **Test workflow** to run three sample workflows with problems through the checks.\n5. Activate. Checks run every 15 minutes; the summary goes out at 8am.\n\nNo credentials are included. More templates: n8n.io/creators/pushbuild",
+    "height": 1120,
+    "width": 1040,
+    "color": 7
+   },
+   "id": "40fa84b0-5ee0-5a26-bd28-469e75bd53cd",
+   "name": "Note 1",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -1120,
+    -420
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### checks_json\nOne entry per workflow to watch:\n- `workflow_id`: from the workflow's URL\n- `name`: how alerts name it\n- `max_gap_minutes`: alert if no run for this long (0 = off). Nightly: 1500. Hourly: 90.\n- `count_node`: the step whose output should not be empty (blank = the last step that ran)\n- `min_items`: fewest items that step should output\n- `record_check_url`: optional URL that returns today's records as JSON (a list, or `count`/`total`/`data`)\n- `record_min`: fewest records expected there\n- `alert_on_errors`: also report runs that ended in error, if you have no error workflow",
+    "height": 520,
+    "width": 1040,
+    "color": 6
+   },
+   "id": "ca812f83-ec7c-5b63-a002-95ed73d92ef8",
+   "name": "Note 2",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -80,
+    380
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 1 · Fetch\nFor each check, reads the workflow (is it still active?) and its last 50 runs with their data from the n8n API, plus the record check if you set one. The sample path skips the API.",
+    "height": 520,
+    "width": 1560,
+    "color": 5
+   },
+   "id": "79ba3538-b7a6-5226-a7fb-17d03ea2dd50",
+   "name": "Note 3",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    960,
+    -220
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 2 · Judge\n**Find silent failures** counts the items each run produced at your step, measures the gap since the last run and compares the record count. **Only new problems** reports each problem once.",
+    "height": 320,
+    "width": 520,
+    "color": 4
+   },
+   "id": "d0b58e5f-b23e-511d-9bf7-7a6f40e5c092",
+   "name": "Note 4",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    2520,
+    -220
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 3 · Tell someone\nOne Slack message and one email per round of checks, with a link to each run. Every finding is also logged as a row in your sheet.",
+    "height": 520,
+    "width": 520,
+    "color": 6
+   },
+   "id": "49b92b33-c340-524c-b32c-827e4e155243",
+   "name": "Note 5",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    3040,
+    -220
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 4 · Daily summary and failures\nAt 8am Slack gets the number of checks and problems in the last 24 hours. If the monitor cannot reach the n8n API, Slack or email, the failure alert says so.",
+    "height": 520,
+    "width": 520,
+    "color": 3
+   },
+   "id": "52ffd2c2-2d33-5603-b63c-f44556af9979",
+   "name": "Note 6",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    3300,
+    180
+   ]
+  }
+ ],
+ "connections": {
+  "Describe failure": {
+   "main": [
+    [
+     {
+      "node": "Failure alert",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Every 15 minutes": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Daily summary (8am)": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Test with sample data": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Config": {
+   "main": [
+    [
+     {
+      "node": "Summary run?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Summary run?": {
+   "main": [
+    [
+     {
+      "node": "Build daily summary",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Sample run?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build daily summary": {
+   "main": [
+    [
+     {
+      "node": "Daily summary (Slack)",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Sample run?": {
+   "main": [
+    [
+     {
+      "node": "Sample runs",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "One item per check",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "One item per check": {
+   "main": [
+    [
+     {
+      "node": "Get workflow",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Get workflow": {
+   "main": [
+    [
+     {
+      "node": "Get recent runs",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Get recent runs": {
+   "main": [
+    [
+     {
+      "node": "Record check set?",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Record check set?": {
+   "main": [
+    [
+     {
+      "node": "Check expected record",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Gather",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Check expected record": {
+   "main": [
+    [
+     {
+      "node": "Gather",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Gather": {
+   "main": [
+    [
+     {
+      "node": "Find silent failures",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Sample runs": {
+   "main": [
+    [
+     {
+      "node": "Find silent failures",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Find silent failures": {
+   "main": [
+    [
+     {
+      "node": "Only new problems",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Only new problems": {
+   "main": [
+    [
+     {
+      "node": "Build alert",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "Log to sheet",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build alert": {
+   "main": [
+    [
+     {
+      "node": "Alert (Slack)",
+      "type": "main",
+      "index": 0
+     },
+     {
+      "node": "Alert (email)",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Alert (Slack)": {
+   "main": [
+    [],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Alert (email)": {
+   "main": [
+    [],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Log to sheet": {
+   "main": [
+    [],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "active": false,
+ "settings": {
+  "executionOrder": "v1"
+ },
+ "meta": {
+  "templateCredsSetupCompleted": false
+ },
+ "tags": []
+}

@@ -4,6 +4,7 @@ Importable [n8n](https://n8n.io) workflows for jobs most small businesses repeat
 
 | Template | What it does | Guide |
 |---|---|---|
+| [Silent failure monitor](silent-failure-monitor/) | Watches your n8n workflows and alerts you on Slack and by email when a run succeeds but does nothing, a schedule is missed, an expected record is missing, or a workflow is switched off. | [n8n silent failures](https://pushbuild.com/guides/n8n-silent-failures.html) |
 | [AI lead qualifier: research, score and route](ai-lead-qualifier/) | An AI agent researches each new lead's company, scores fit and intent, and routes it: a HubSpot deal, three free times from your calendar and a Slack alert for hot leads, a tailored reply for the rest. | [Lead follow-up automation](https://pushbuild.com/guides/lead-follow-up-automation.html) |
 | [Lead follow-up: score, reply, CRM, alert](lead-follow-up/) | Every new lead from your website form gets a quick reply, goes into HubSpot, and is scored by OpenAI. | [Lead follow-up automation](https://pushbuild.com/guides/lead-follow-up-automation.html) |
 | [Job completed to QuickBooks invoice](quickbooks-invoice-sync/) | When a job or order is marked complete in your other system, this workflow creates the QuickBooks Online invoice. | [QuickBooks automation](https://pushbuild.com/guides/quickbooks-automation.html) |
@@ -18,7 +19,7 @@ Importable [n8n](https://n8n.io) workflows for jobs most small businesses repeat
 2. In n8n, open **Workflows → Import from file** and choose the `workflow.json`.
 3. Follow that folder's README to add your own credentials and settings.
 
-Import-tested on n8n 1.70; the AI lead qualifier needs n8n 1.110 or later. Older instances may need node versions adjusted.
+Import-tested on n8n 1.70; the AI lead qualifier and silent failure monitor were tested on n8n 1.110. Older instances may need node versions adjusted.
 
 ## Want one set up for you?
 
