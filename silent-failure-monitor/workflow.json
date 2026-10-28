@@ -159,8 +159,8 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    780,
-    400
+    884.0,
+    680.0
    ]
   },
   {
@@ -177,8 +177,8 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    1040,
-    400
+    1144.0,
+    680.0
    ],
    "retryOnFail": true,
    "maxTries": 3,
@@ -213,7 +213,7 @@
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    780,
+    884.0,
     0
    ]
   },
@@ -226,7 +226,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    1040,
+    1144.0,
     0
    ]
   },
@@ -243,7 +243,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    1300,
+    1404.0,
     0
    ],
    "retryOnFail": true,
@@ -281,7 +281,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    1560,
+    1664.0,
     0
    ],
    "retryOnFail": true,
@@ -318,7 +318,7 @@
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    1820,
+    1924.0,
     0
    ]
   },
@@ -333,7 +333,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    2080,
+    2184.0,
     -200
    ],
    "retryOnFail": true,
@@ -351,7 +351,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    2340,
+    2444.0,
     0
    ]
   },
@@ -364,8 +364,8 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    2340,
-    400
+    2444.0,
+    280.0
    ]
   },
   {
@@ -377,7 +377,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    2600,
+    2704.0,
     0
    ]
   },
@@ -390,7 +390,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    2860,
+    2964.0,
     0
    ]
   },
@@ -420,7 +420,7 @@
    "type": "n8n-nodes-base.googleSheets",
    "typeVersion": 4.5,
    "position": [
-    3120,
+    3224.0,
     200
    ],
    "retryOnFail": true,
@@ -437,7 +437,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    3120,
+    3224.0,
     0
    ]
   },
@@ -455,7 +455,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    3380,
+    3484.0,
     0
    ],
    "retryOnFail": true,
@@ -477,7 +477,7 @@
    "type": "n8n-nodes-base.emailSend",
    "typeVersion": 2.1,
    "position": [
-    3380,
+    3484.0,
     200
    ],
    "retryOnFail": true,
@@ -494,8 +494,8 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    3380,
-    600
+    1404.0,
+    680.0
    ]
   },
   {
@@ -512,8 +512,8 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    3640,
-    600
+    1664.0,
+    680.0
    ],
    "retryOnFail": true,
    "maxTries": 3,
@@ -522,8 +522,8 @@
   {
    "parameters": {
     "content": "## Silent failure monitor for n8n\nSome failures never turn a run red: a filter drops every item, an API returns an empty page, a schedule stops firing, someone switches a workflow off. This workflow watches the workflows you list and tells you when they **succeeded but did nothing**.\n\nIt flags: **empty runs** (fewer items than expected out of a step you name), **missed schedules** (no run within the gap you set), **missing records** (a URL you give returns no rows), **switched-off workflows**, and optionally **failed runs**. Each problem is reported once to Slack and email and logged to a Google Sheet. A daily summary proves the monitor itself is running.\n\n**You need:** n8n with the public API on · an n8n API key · a Slack incoming webhook · SMTP · Google Sheets\n\n**Setup**\n1. n8n Settings → n8n API → create a key. Add a **Header Auth** credential: name `X-N8N-API-KEY`, value the key. Select it on **Get workflow** and **Get recent runs**.\n2. Fill in **Config**: your n8n URL, the Slack URL, the alert email, and `checks_json` (see the note on the right).\n3. Add SMTP to **Alert (email)** and Google Sheets to **Log to sheet** (a tab named `Silent failures`).\n4. Click **Test workflow** to run three sample workflows with problems through the checks.\n5. Activate. Checks run every 15 minutes; the summary goes out at 8am.\n\nNo credentials are included. More templates: n8n.io/creators/pushbuild",
-    "height": 1120,
-    "width": 1040,
+    "height": 678,
+    "width": 1000,
     "color": 7
    },
    "id": "40fa84b0-5ee0-5a26-bd28-469e75bd53cd",
@@ -531,15 +531,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -1120,
-    -420
+    -1100,
+    -488
    ]
   },
   {
    "parameters": {
     "content": "### checks_json\nOne entry per workflow to watch:\n- `workflow_id`: from the workflow's URL\n- `name`: how alerts name it\n- `max_gap_minutes`: alert if no run for this long (0 = off). Nightly: 1500. Hourly: 90.\n- `count_node`: the step whose output should not be empty (blank = the last step that ran)\n- `min_items`: fewest items that step should output\n- `record_check_url`: optional URL that returns today's records as JSON (a list, or `count`/`total`/`data`)\n- `record_min`: fewest records expected there\n- `alert_on_errors`: also report runs that ended in error, if you have no error workflow",
-    "height": 520,
-    "width": 1040,
+    "height": 556.0,
+    "width": 740,
     "color": 6
    },
    "id": "ca812f83-ec7c-5b63-a002-95ed73d92ef8",
@@ -547,15 +547,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -80,
-    380
+    -60,
+    534.0
    ]
   },
   {
    "parameters": {
     "content": "### 1 · Fetch\nFor each check, reads the workflow (is it still active?) and its last 50 runs with their data from the n8n API, plus the record check if you set one. The sample path skips the API.",
-    "height": 520,
-    "width": 1560,
+    "height": 799.0,
+    "width": 1780.0,
     "color": 5
    },
    "id": "79ba3538-b7a6-5226-a7fb-17d03ea2dd50",
@@ -563,15 +563,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    960,
-    -220
+    824.0,
+    -329
    ]
   },
   {
    "parameters": {
     "content": "### 2 · Judge\n**Find silent failures** counts the items each run produced at your step, measures the gap since the last run and compares the record count. **Only new problems** reports each problem once.",
-    "height": 320,
-    "width": 520,
+    "height": 361,
+    "width": 480.0,
     "color": 4
    },
    "id": "d0b58e5f-b23e-511d-9bf7-7a6f40e5c092",
@@ -579,15 +579,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    2520,
-    -220
+    2644.0,
+    -171
    ]
   },
   {
    "parameters": {
     "content": "### 3 · Tell someone\nOne Slack message and one email per round of checks, with a link to each run. Every finding is also logged as a row in your sheet.",
-    "height": 520,
-    "width": 520,
+    "height": 561,
+    "width": 480.0,
     "color": 6
    },
    "id": "49b92b33-c340-524c-b32c-827e4e155243",
@@ -595,15 +595,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    3040,
-    -220
+    3164.0,
+    -171
    ]
   },
   {
    "parameters": {
     "content": "### 4 · Daily summary and failures\nAt 8am Slack gets the number of checks and problems in the last 24 hours. If the monitor cannot reach the n8n API, Slack or email, the failure alert says so.",
-    "height": 520,
-    "width": 520,
+    "height": 340.0,
+    "width": 1000.0,
     "color": 3
    },
    "id": "52ffd2c2-2d33-5603-b63c-f44556af9979",
@@ -611,8 +611,8 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    3300,
-    180
+    824.0,
+    530.0
    ]
   }
  ],
