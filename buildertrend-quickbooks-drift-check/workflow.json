@@ -1,0 +1,904 @@
+{
+ "name": "Buildertrend to QuickBooks drift check: daily report of bills and job costs that don't match",
+ "nodes": [
+  {
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "cronExpression",
+       "expression": "0 7 * * *"
+      }
+     ]
+    }
+   },
+   "id": "7d6500ef-5d5c-5a8c-9fcb-b7f3e0872807",
+   "name": "Every morning (7am)",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    0,
+    0
+   ]
+  },
+  {
+   "parameters": {},
+   "id": "d2dc7057-420e-510d-8243-bc173a4cfead",
+   "name": "Test with sample data",
+   "type": "n8n-nodes-base.manualTrigger",
+   "typeVersion": 1,
+   "position": [
+    0,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "assignments": {
+     "assignments": [
+      {
+       "id": "283b0bc7-11de-5374-9e4f-57febc962337",
+       "name": "workflow_label",
+       "value": "Buildertrend vs QuickBooks",
+       "type": "string"
+      },
+      {
+       "id": "222ea44b-32b3-5729-b490-a63188a14e38",
+       "name": "drive_folder_id",
+       "value": "REPLACE_WITH_DRIVE_FOLDER_ID",
+       "type": "string"
+      },
+      {
+       "id": "3253ebef-c110-5bfa-aff0-372b2a4711e8",
+       "name": "drive_api_base",
+       "value": "https://www.googleapis.com",
+       "type": "string"
+      },
+      {
+       "id": "3d964823-034d-5f2f-b3d1-3cf33fc55604",
+       "name": "max_export_age_hours",
+       "value": 36,
+       "type": "number"
+      },
+      {
+       "id": "ee59a237-5f7f-5913-a7de-76224a9a52da",
+       "name": "qbo_base_url",
+       "value": "https://quickbooks.api.intuit.com",
+       "type": "string"
+      },
+      {
+       "id": "808febe7-3f48-5708-b374-9c88c353834c",
+       "name": "realm_id",
+       "value": "REPLACE_WITH_COMPANY_ID",
+       "type": "string"
+      },
+      {
+       "id": "50bbd017-736a-584e-9adc-585d3d9020c5",
+       "name": "lookback_days",
+       "value": 60,
+       "type": "number"
+      },
+      {
+       "id": "90080f1e-7b6e-5fc8-b1f0-792000fa5086",
+       "name": "amount_tolerance",
+       "value": 1,
+       "type": "number"
+      },
+      {
+       "id": "edbb0430-8027-5233-9d8d-8c09041a5dfc",
+       "name": "date_tolerance_days",
+       "value": 3,
+       "type": "number"
+      },
+      {
+       "id": "5fa023d4-fba7-55ee-ad9b-22ea65214195",
+       "name": "job_total_tolerance",
+       "value": 25,
+       "type": "number"
+      },
+      {
+       "id": "cb970782-9aee-5c6a-993f-28cb7bfff10d",
+       "name": "report_to",
+       "value": "office@yourcompany.com",
+       "type": "string"
+      },
+      {
+       "id": "9e59938b-dd89-5b94-91d7-d6fe276f3051",
+       "name": "from_email",
+       "value": "reports@yourcompany.com",
+       "type": "string"
+      },
+      {
+       "id": "b15d9475-2838-50d6-b702-2bbf0e61b05e",
+       "name": "send_when_clean",
+       "value": "false",
+       "type": "string"
+      },
+      {
+       "id": "bf450bd1-a3f5-54b8-ad20-eac4352b3ce0",
+       "name": "field_job",
+       "value": "Job",
+       "type": "string"
+      },
+      {
+       "id": "63d95e40-0726-5300-a1af-bd1059ade740",
+       "name": "field_vendor",
+       "value": "Sub/Vendor",
+       "type": "string"
+      },
+      {
+       "id": "5d8e93ad-1345-5fc3-bf87-8c886645eb7c",
+       "name": "field_ref",
+       "value": "Bill #",
+       "type": "string"
+      },
+      {
+       "id": "bc5a115b-8bc3-54fe-863e-62bd423aeb64",
+       "name": "field_date",
+       "value": "Date",
+       "type": "string"
+      },
+      {
+       "id": "c064ffbb-50ac-5aa4-8d82-a446c65c2b3b",
+       "name": "field_amount",
+       "value": "Amount",
+       "type": "string"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "id": "6c1419d8-25f4-5fe7-a94a-4fe3f0d791f0",
+   "name": "Config",
+   "type": "n8n-nodes-base.set",
+   "typeVersion": 3.4,
+   "position": [
+    260,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "261ea8bc-5815-5f86-9512-cb4071f1daf4",
+       "leftValue": "={{ $('Test with sample data').isExecuted }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "261ea8bc-5815-5f86-9512-cb4071f1daf4",
+   "name": "Sample run?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    520,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "={{ $('Config').first().json.drive_api_base }}/drive/v3/files",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "googleDriveOAuth2Api",
+    "sendQuery": true,
+    "queryParameters": {
+     "parameters": [
+      {
+       "name": "q",
+       "value": "='{{ $('Config').first().json.drive_folder_id }}' in parents and trashed = false and (mimeType = 'text/csv' or name contains '.csv')"
+      },
+      {
+       "name": "orderBy",
+       "value": "modifiedTime desc"
+      },
+      {
+       "name": "pageSize",
+       "value": "1"
+      },
+      {
+       "name": "fields",
+       "value": "files(id,name,modifiedTime)"
+      }
+     ]
+    }
+   },
+   "id": "072b02dc-649b-5ece-91ab-8cab725f8613",
+   "name": "Find latest export",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    780,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "8079ba4d-7d06-52dc-9de8-0ab0432982f6",
+       "leftValue": "={{ ($json.files || []).length }}",
+       "operator": {
+        "type": "number",
+        "operation": "gt"
+       },
+       "rightValue": 0
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "8079ba4d-7d06-52dc-9de8-0ab0432982f6",
+   "name": "Export found?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    1040,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "return [{ json: { message: 'No CSV export found in the Google Drive folder. Export your Buildertrend bills report as CSV into the folder set in Config.' } }];"
+   },
+   "id": "36988769-ab52-53eb-8e68-963b4a347f1d",
+   "name": "No export",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1300,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "={{ $('Config').first().json.drive_api_base }}/drive/v3/files/{{ $json.files[0].id }}",
+    "options": {
+     "response": {
+      "response": {
+       "responseFormat": "text",
+       "outputPropertyName": "csv"
+      }
+     }
+    },
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "googleDriveOAuth2Api",
+    "sendQuery": true,
+    "queryParameters": {
+     "parameters": [
+      {
+       "name": "alt",
+       "value": "media"
+      }
+     ]
+    }
+   },
+   "id": "0db1125b-588f-5b73-b64d-991c1b4f7fb7",
+   "name": "Download export",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1300,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// A Buildertrend bills export as CSV, with the column names set in Config (field_*). Run \"Test workflow\" to see the report.\nconst d = n => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);   // dates relative to today, so the sample never ages out\nconst csv = [\n  'Job,Sub/Vendor,Bill #,Date,Amount',\n  `\"Maple St Remodel\",Acme Lumber,AL-5521,${d(20)},\"4,812.40\"`,\n  `\"Maple St Remodel\",Brightline Electric,BE-118,${d(17)},2950.00`,\n  `\"Oak Ave Addition\",Acme Lumber,AL-5530,${d(15)},1180.00`,\n  `\"Oak Ave Addition\",Precision Plumbing,PP-77,${d(13)},1625.00`,\n  `\"Oak Ave Addition\",Stone & Tile Co,ST-904,${d(10)},880.00`,\n  `\"Hill Rd Deck\",Acme Lumber,AL-5544,${d(8)},2210.75`,\n].join('\\n');\nreturn [{ json: { csv, export_name: 'sample-bills.csv', export_time: new Date().toISOString() } }];\n"
+   },
+   "id": "ae5c5021-461b-5d65-bd2e-8cb7e71c4416",
+   "name": "Sample export",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    780,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Reads the CSV (quoted fields, commas inside quotes, \"1,234.50\" amounts). Column names come from Config, so match them to your export.\nconst cfg = $('Config').first().json, src = $input.first().json;\nconst text = String(src.csv ?? src.data ?? '');\nconst rows = [], re = /(\"([^\"]|\"\")*\"|[^,\\n\\r]*)(,|\\r?\\n|$)/g;\nlet row = [], m;\nwhile ((m = re.exec(text)) && m[0] !== '') {\n  let v = m[1]; if (v.startsWith('\"')) v = v.slice(1, -1).replace(/\"\"/g, '\"');\n  row.push(v.trim()); if (m[3] !== ',') { if (row.some(x => x !== '')) rows.push(row); row = []; }\n}\nif (rows.length < 2) return [{ json: { error: 'The export has no rows. Check it is the bills report saved as CSV.' } }];\nconst head = rows[0], col = n => head.findIndex(h => h.toLowerCase() === String(n).toLowerCase());\nconst need = { job: cfg.field_job, vendor: cfg.field_vendor, ref: cfg.field_ref, date: cfg.field_date, amount: cfg.field_amount };\nconst missing = Object.values(need).filter(n => col(n) < 0);\nif (missing.length) return [{ json: { error: `Column not found in the export: ${missing.join(', ')}. Columns are: ${head.join(', ')}. Set the field_* names in Config.` } }];\nconst since = Date.now() - Number(cfg.lookback_days || 60) * 864e5;\nconst num = v => Number(String(v).replace(/[^0-9.\\-]/g, ''));\nconst bills = rows.slice(1).map(r => ({ job: r[col(need.job)], vendor: r[col(need.vendor)], ref: r[col(need.ref)],\n  date: new Date(r[col(need.date)]).toISOString().slice(0, 10), amount: Math.round(num(r[col(need.amount)]) * 100) / 100 }))\n  .filter(b => isFinite(b.amount) && new Date(b.date).getTime() >= since);\nconst exp = $('Find latest export').isExecuted ? $('Find latest export').first().json.files[0] : { name: src.export_name, modifiedTime: src.export_time };\nreturn [{ json: { bills, export_name: exp.name, export_time: exp.modifiedTime } }];\n"
+   },
+   "id": "39158d6f-aa54-5e26-b5a9-6b2c864697b4",
+   "name": "Parse export",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1560,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "65bac4b9-221b-5a19-932f-165da9b87505",
+       "leftValue": "={{ $json.error }}",
+       "operator": {
+        "type": "string",
+        "operation": "empty",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "65bac4b9-221b-5a19-932f-165da9b87505",
+   "name": "Export readable?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    1820,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "7af0531b-3d92-52c6-9a61-2e1638bea0d2",
+       "leftValue": "={{ $('Test with sample data').isExecuted }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "7af0531b-3d92-52c6-9a61-2e1638bea0d2",
+   "name": "Sample QuickBooks?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    2080,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "={{ $('Config').first().json.qbo_base_url }}/v3/company/{{ $('Config').first().json.realm_id }}/query",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "quickBooksOAuth2Api",
+    "sendQuery": true,
+    "queryParameters": {
+     "parameters": [
+      {
+       "name": "query",
+       "value": "=select * from Bill where TxnDate >= '{{ new Date(Date.now() - $('Config').first().json.lookback_days * 864e5).toISOString().slice(0, 10) }}' MAXRESULTS 1000"
+      },
+      {
+       "name": "minorversion",
+       "value": "73"
+      }
+     ]
+    }
+   },
+   "id": "bfa754e9-91cd-5ea1-8ab7-f2f3cd40a88d",
+   "name": "Get QuickBooks bills",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2340,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// What QuickBooks returns for the same period: one bill missing, one amount typed wrong, one on the wrong job, one extra.\nconst d = n => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);\nconst bill = (doc, vendor, date, amt, job) => ({ DocNumber: doc, VendorRef: { name: vendor }, TxnDate: date, TotalAmt: amt,\n  Line: [{ Amount: amt, AccountBasedExpenseLineDetail: { CustomerRef: { name: job } } }] });\nreturn [{ json: { QueryResponse: { Bill: [\n  bill('AL-5521', 'Acme Lumber', d(20), 4812.40, 'Maple St Remodel'),\n  bill('BE-118', 'Brightline Electric', d(16), 2590.00, 'Maple St Remodel'),\n  bill('AL-5530', 'Acme Lumber', d(15), 1180.00, 'Hill Rd Deck'),\n  bill('PP-77', 'Precision Plumbing', d(13), 1625.00, 'Oak Ave Addition'),\n  bill('AL-5544', 'Acme Lumber', d(8), 2210.75, 'Hill Rd Deck'),\n  bill('GS-12', 'Granite Supply', d(7), 640.00, 'Oak Ave Addition'),\n] } } }];\n"
+   },
+   "id": "ad31bf16-3567-5281-b8bb-c98c325988ec",
+   "name": "Sample QuickBooks bills",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2340,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Matches each Buildertrend bill to a QuickBooks bill: by bill number and vendor first, then by vendor, amount and a date\n// within date_tolerance_days. Then compares totals per job. Problems seen in an earlier report are marked so new ones stand out.\nconst cfg = $('Config').first().json, src = $('Parse export').first().json;\nconst tol = Number(cfg.amount_tolerance || 0), dtol = Number(cfg.date_tolerance_days || 0) * 864e5, jtol = Number(cfg.job_total_tolerance || 0);\nconst norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');\nconst qb = ($json.QueryResponse && $json.QueryResponse.Bill || []).map(b => ({ ref: b.DocNumber || '', vendor: (b.VendorRef || {}).name || '',\n  date: b.TxnDate, amount: Number(b.TotalAmt), job: ((b.Line || []).map(l => ((l.AccountBasedExpenseLineDetail || l.ItemBasedExpenseLineDetail || {}).CustomerRef || {}).name).find(Boolean)) || '' }));\nconst used = new Set(), issues = [];\nfor (const bt of src.bills) {\n  let i = qb.findIndex((q, k) => !used.has(k) && bt.ref && norm(q.ref) === norm(bt.ref) && norm(q.vendor) === norm(bt.vendor));\n  if (i < 0) i = qb.findIndex((q, k) => !used.has(k) && norm(q.vendor) === norm(bt.vendor) && Math.abs(q.amount - bt.amount) <= tol\n    && Math.abs(new Date(q.date) - new Date(bt.date)) <= dtol);\n  if (i < 0) { issues.push({ type: 'Missing in QuickBooks', job: bt.job, vendor: bt.vendor, ref: bt.ref, detail: `${bt.date}, ${bt.amount.toFixed(2)}` }); continue; }\n  used.add(i); const q = qb[i];\n  if (Math.abs(q.amount - bt.amount) > tol) issues.push({ type: 'Amount differs', job: bt.job, vendor: bt.vendor, ref: bt.ref,\n    detail: `Buildertrend ${bt.amount.toFixed(2)}, QuickBooks ${q.amount.toFixed(2)}` });\n  if (q.job && norm(q.job) !== norm(bt.job) && !norm(q.job).endsWith(norm(bt.job))) issues.push({ type: 'Different job', job: bt.job, vendor: bt.vendor, ref: bt.ref,\n    detail: `QuickBooks has it on ${q.job}` });\n}\nconst jobs = new Set(src.bills.map(b => b.job));\nqb.forEach((q, k) => { if (!used.has(k) && (!q.job || [...jobs].some(j => norm(q.job).endsWith(norm(j))))) issues.push({ type: 'Missing in Buildertrend', job: q.job, vendor: q.vendor, ref: q.ref, detail: `${q.date}, ${q.amount.toFixed(2)}` }); });\nconst totals = [];\nfor (const j of jobs) {\n  const a = src.bills.filter(b => b.job === j).reduce((s, b) => s + b.amount, 0);\n  const b = qb.filter(q => norm(q.job).endsWith(norm(j))).reduce((s, q) => s + q.amount, 0);\n  if (Math.abs(a - b) > jtol) totals.push({ job: j, buildertrend: a.toFixed(2), quickbooks: b.toFixed(2), diff: (b - a).toFixed(2) });\n}\nconst sd = $getWorkflowStaticData('global'), seen = new Set(sd.seen || []);\nconst key = x => [x.type, x.job, x.vendor, x.ref].join('|');\nissues.forEach(x => x.new = !seen.has(key(x)));\nsd.seen = issues.map(key);\nconst age = (Date.now() - new Date(src.export_time)) / 36e5;\nreturn [{ json: { issues, totals, checked: src.bills.length, qb_count: qb.length, export_name: src.export_name,\n  stale: age > Number(cfg.max_export_age_hours || 36) ? Math.round(age) : 0, new_count: issues.filter(x => x.new).length } }];\n"
+   },
+   "id": "5a0822f8-f689-5a5e-8f79-85725f6074cb",
+   "name": "Compare",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    2600,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "fb58cec5-e8b4-5308-a33d-1b8937ae4993",
+       "leftValue": "={{ $json.issues.length + $json.totals.length + ($json.stale ? 1 : 0) + ($('Config').first().json.send_when_clean === 'true' ? 1 : 0) }}",
+       "operator": {
+        "type": "number",
+        "operation": "gt"
+       },
+       "rightValue": 0
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "fb58cec5-e8b4-5308-a33d-1b8937ae4993",
+   "name": "Anything to report?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    2860,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Plain-text email: a summary line, the export used, every problem grouped by type (new ones marked), then job totals.\nconst r = $json, out = [];\nout.push(`${r.issues.length} bill problem${r.issues.length === 1 ? '' : 's'} (${r.new_count} new) and ${r.totals.length} job total${r.totals.length === 1 ? '' : 's'} out of step.`);\nout.push(`Checked ${r.checked} Buildertrend bills from ${r.export_name} against ${r.qb_count} QuickBooks bills.`);\nif (r.stale) out.push(`Warning: the export is ${r.stale} hours old. Export a fresh one so the check is current.`);\nfor (const t of ['Missing in QuickBooks', 'Amount differs', 'Different job', 'Missing in Buildertrend']) {\n  const xs = r.issues.filter(x => x.type === t); if (!xs.length) continue;\n  out.push('', `${t} (${xs.length})`);\n  xs.forEach(x => out.push(`- ${x.new ? '[new] ' : ''}${x.job || '(no job)'}: ${x.vendor} ${x.ref || ''}, ${x.detail}`));\n}\nif (r.totals.length) { out.push('', 'Job totals that differ'); r.totals.forEach(t => out.push(`- ${t.job}: Buildertrend ${t.buildertrend}, QuickBooks ${t.quickbooks} (${t.diff})`)); }\nif (!r.issues.length && !r.totals.length) out.push('', 'Everything matched.');\nconst n = r.issues.length + r.totals.length;\nreturn [{ json: { subject: `${$('Config').first().json.workflow_label}: ${n ? n + ' to check' : 'all matched'}${r.stale ? ', export is ' + r.stale + 'h old' : ''}`, text: out.join('\\n') } }];\n"
+   },
+   "id": "d40d40fc-2d86-59ee-aba8-e4138c1f4758",
+   "name": "Write report",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    3120,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "fromEmail": "={{ $('Config').first().json.from_email }}",
+    "toEmail": "={{ $('Config').first().json.report_to }}",
+    "subject": "={{ $json.subject }}",
+    "emailFormat": "text",
+    "text": "={{ $json.text }}",
+    "options": {}
+   },
+   "id": "c7e10cbe-774a-5a66-9f9a-088f737ac370",
+   "name": "Email the report",
+   "type": "n8n-nodes-base.emailSend",
+   "typeVersion": 2.1,
+   "position": [
+    3380,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// One alert for every failure path. $prevNode names the step that failed.\nconst cfg = $('Config').first().json;\nreturn $input.all().map(i => {\n  const e = i.json.error;\n  const msg = String((typeof e === 'string' ? e : e && (e.description || e.message)) || i.json.message || JSON.stringify(i.json)).slice(0, 400);\n  return { json: { text: `${cfg.workflow_label}: ${$prevNode.name} failed${i.json.ref ? ' for ' + i.json.ref : ''}. ${msg}` } };\n});\n"
+   },
+   "id": "abda6c59-c417-5e91-9b44-15f7e3f25c17",
+   "name": "Describe failure",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    3120,
+    600
+   ]
+  },
+  {
+   "parameters": {
+    "fromEmail": "={{ $('Config').first().json.from_email }}",
+    "toEmail": "={{ $('Config').first().json.report_to }}",
+    "subject": "={{ $('Config').first().json.workflow_label }}: the check did not run",
+    "emailFormat": "text",
+    "text": "={{ $json.text }}",
+    "options": {}
+   },
+   "id": "88ac3c8f-dafd-560e-a958-b0425676fab6",
+   "name": "Failure alert",
+   "type": "n8n-nodes-base.emailSend",
+   "typeVersion": 2.1,
+   "position": [
+    3380,
+    600
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000
+  },
+  {
+   "parameters": {
+    "content": "## Buildertrend → QuickBooks drift check\nEvery morning this compares the bills in your latest Buildertrend export with the bills in QuickBooks Online and emails what doesn't match: bills missing on either side, amounts typed differently, bills on the wrong job, and job totals that disagree. Problems already reported are marked so new ones stand out.\n\n**You need:** n8n · QuickBooks Online (Intuit developer app, OAuth2) · a Google Drive folder · an SMTP account for email\n\n**Setup**\n1. Export your Buildertrend bills report as CSV into one Google Drive folder (Buildertrend has no public API, so the export is the source).\n2. Add a **Google Drive OAuth2** and a **QuickBooks Online OAuth2** credential and select them on the three API steps; add **SMTP** on the two email steps.\n3. Fill in **Config**: folder id, `realm_id`, emails, and the `field_*` names to match your export's column headers.\n4. Click **Test workflow** to see the report with sample data, then activate.\n\nNo credentials are included. Guide: pushbuild.com/guides/buildertrend-quickbooks-reconciliation.html",
+    "height": 1120,
+    "width": 780,
+    "color": 7
+   },
+   "id": "f8a359b7-5e98-56f8-bbc9-b97d3bb456b9",
+   "name": "Note 1",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -860,
+    -420
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 1 · Latest export\nFinds the newest CSV in the folder and warns if it is older than `max_export_age_hours`. Column names are read from Config.",
+    "height": 320,
+    "width": 1560,
+    "color": 4
+   },
+   "id": "5d7d91a9-3343-56bc-b635-e1fd51789ede",
+   "name": "Note 2",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    440,
+    -420
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 2 · Compare\nMatches by bill number and vendor, then by vendor, amount and date. Tolerances are in Config. Job totals are compared too.",
+    "height": 320,
+    "width": 1040,
+    "color": 4
+   },
+   "id": "68aa5c56-4284-539b-a0c1-f4b50408dd22",
+   "name": "Note 3",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    2000,
+    -420
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 3 · Report and alerts\nOne plain email per morning, only when something needs a look (or always, with `send_when_clean`). Any failed step emails the reason.",
+    "height": 320,
+    "width": 520,
+    "color": 4
+   },
+   "id": "fae0515c-7dfa-530c-8d1d-5844d4b4cd0c",
+   "name": "Note 4",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    3040,
+    -420
+   ]
+  }
+ ],
+ "connections": {
+  "Every morning (7am)": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Test with sample data": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Config": {
+   "main": [
+    [
+     {
+      "node": "Sample run?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Sample run?": {
+   "main": [
+    [
+     {
+      "node": "Sample export",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Find latest export",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Sample export": {
+   "main": [
+    [
+     {
+      "node": "Parse export",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Find latest export": {
+   "main": [
+    [
+     {
+      "node": "Export found?",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Export found?": {
+   "main": [
+    [
+     {
+      "node": "Download export",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "No export",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "No export": {
+   "main": [
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Download export": {
+   "main": [
+    [
+     {
+      "node": "Parse export",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Parse export": {
+   "main": [
+    [
+     {
+      "node": "Export readable?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Export readable?": {
+   "main": [
+    [
+     {
+      "node": "Sample QuickBooks?",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Sample QuickBooks?": {
+   "main": [
+    [
+     {
+      "node": "Sample QuickBooks bills",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Get QuickBooks bills",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Sample QuickBooks bills": {
+   "main": [
+    [
+     {
+      "node": "Compare",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Get QuickBooks bills": {
+   "main": [
+    [
+     {
+      "node": "Compare",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Compare": {
+   "main": [
+    [
+     {
+      "node": "Anything to report?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Anything to report?": {
+   "main": [
+    [
+     {
+      "node": "Write report",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Write report": {
+   "main": [
+    [
+     {
+      "node": "Email the report",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Email the report": {
+   "main": [
+    [],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Describe failure": {
+   "main": [
+    [
+     {
+      "node": "Failure alert",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "active": false,
+ "settings": {
+  "executionOrder": "v1"
+ },
+ "meta": {
+  "templateCredsSetupCompleted": false
+ },
+ "tags": []
+}
