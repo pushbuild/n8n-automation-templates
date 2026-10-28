@@ -1,0 +1,1082 @@
+{
+ "name": "Weekly numbers dashboard: HubSpot, QuickBooks and Stripe into Google Sheets, with an emailed summary",
+ "nodes": [
+  {
+   "parameters": {
+    "rule": {
+     "interval": [
+      {
+       "field": "cronExpression",
+       "expression": "0 7 * * 1"
+      }
+     ]
+    }
+   },
+   "id": "e66b303d-bce1-52b8-8ec5-5c3f72581e99",
+   "name": "Every Monday (7am)",
+   "type": "n8n-nodes-base.scheduleTrigger",
+   "typeVersion": 1.2,
+   "position": [
+    0,
+    0
+   ]
+  },
+  {
+   "parameters": {},
+   "id": "7d05a4cb-c33e-561a-853a-a033c9b6c23f",
+   "name": "Test with sample data",
+   "type": "n8n-nodes-base.manualTrigger",
+   "typeVersion": 1,
+   "position": [
+    0,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "assignments": {
+     "assignments": [
+      {
+       "id": "9af6901e-5a52-5d79-82cf-8a05506a3cd5",
+       "name": "workflow_label",
+       "value": "Weekly numbers",
+       "type": "string"
+      },
+      {
+       "id": "9b911e60-eb03-5138-84df-e9ef246b981d",
+       "name": "timezone",
+       "value": "America/New_York",
+       "type": "string"
+      },
+      {
+       "id": "b827ab55-35f7-53a7-88ce-8f74a1e9ae2f",
+       "name": "use_hubspot",
+       "value": "true",
+       "type": "string"
+      },
+      {
+       "id": "f1a37183-b821-5646-8ee9-c70aa309e64d",
+       "name": "use_quickbooks",
+       "value": "true",
+       "type": "string"
+      },
+      {
+       "id": "de7f54ae-55b9-5894-8cb9-be70683070e3",
+       "name": "use_stripe",
+       "value": "true",
+       "type": "string"
+      },
+      {
+       "id": "3e69bd10-a324-5424-bbb3-1487f324693d",
+       "name": "hubspot_api_base",
+       "value": "https://api.hubapi.com",
+       "type": "string"
+      },
+      {
+       "id": "18dab343-ea5f-5581-8b6d-2aa1595effb9",
+       "name": "qbo_base_url",
+       "value": "https://quickbooks.api.intuit.com",
+       "type": "string"
+      },
+      {
+       "id": "5a175110-8ee8-53a9-85c1-528090d5d77e",
+       "name": "realm_id",
+       "value": "REPLACE_WITH_COMPANY_ID",
+       "type": "string"
+      },
+      {
+       "id": "ecb4c197-3828-5fbd-9695-f2819afebfb7",
+       "name": "stripe_api_base",
+       "value": "https://api.stripe.com",
+       "type": "string"
+      },
+      {
+       "id": "b1c99cbd-d500-516b-8645-8ad857e45fbf",
+       "name": "currency",
+       "value": "usd",
+       "type": "string"
+      },
+      {
+       "id": "aa8251da-18a4-5fac-bd6f-5b93c0f77db0",
+       "name": "report_to",
+       "value": "owner@yourcompany.com",
+       "type": "string"
+      },
+      {
+       "id": "bf211846-7f9d-5639-97a8-1dff034a9be5",
+       "name": "from_email",
+       "value": "reports@yourcompany.com",
+       "type": "string"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "id": "d0eb8f5d-0539-5b9b-92b4-54ae51f84931",
+   "name": "Config",
+   "type": "n8n-nodes-base.set",
+   "typeVersion": 3.4,
+   "position": [
+    260,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Monday to Monday of last week in your timezone. Every source is read for this window.\nconst cfg = $('Config').first().json;\nconst start = DateTime.now().setZone(cfg.timezone).startOf('week').minus({ weeks: 1 }), end = start.plus({ weeks: 1 });\nreturn [{ json: { week: start.toISODate(), start_iso: start.toUTC().toISO(), end_iso: end.toUTC().toISO(), start_date: start.toISODate(),\n  end_date: end.minus({ days: 1 }).toISODate(), start_ms: start.toMillis(), end_ms: end.toMillis(), today: DateTime.now().setZone(cfg.timezone).toISODate() } }];\n"
+   },
+   "id": "78e423c5-d9a5-53ce-a606-67bbcdab4d73",
+   "name": "Last week",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    520,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "4733b11b-ebc0-5ebb-8503-e5bc33fef260",
+       "leftValue": "={{ $('Test with sample data').isExecuted }}",
+       "operator": {
+        "type": "boolean",
+        "operation": "true",
+        "singleValue": true
+       },
+       "rightValue": ""
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "4733b11b-ebc0-5ebb-8503-e5bc33fef260",
+   "name": "Sample run?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    780,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// What the three sources return for one week, so \"Test workflow\" shows the sheet row and the email without any accounts.\nconst deal = (amt, stage) => ({ properties: { amount: String(amt), dealstage: stage } });\nreturn [{ json: { sample: true,\n  hs_created: { total: 14, results: [deal(4000, 'appointmentscheduled'), deal(2500, 'qualifiedtobuy'), deal(9000, 'appointmentscheduled')] },\n  hs_won: { total: 3, results: [deal(5200, 'closedwon'), deal(1800, 'closedwon'), deal(7400, 'closedwon')] },\n  hs_open: { total: 22, results: [deal(4000, 'appointmentscheduled'), deal(12500, 'presentationscheduled'), deal(9000, 'contractsent')] },\n  qb_invoices: { QueryResponse: { Invoice: [{ TotalAmt: 4200, Balance: 0 }, { TotalAmt: 1350, Balance: 1350 }, { TotalAmt: 8800, Balance: 2000 }] } },\n  qb_payments: { QueryResponse: { Payment: [{ TotalAmt: 6100 }, { TotalAmt: 950 }] } },\n  qb_open: { QueryResponse: { Invoice: [{ Balance: 1350, DueDate: '2099-01-01' }, { Balance: 2000, DueDate: '2000-01-01' }, { Balance: 640, DueDate: '2000-01-01' }] } },\n  stripe: [{ amount: 12000, amount_refunded: 0, status: 'succeeded', paid: true }, { amount: 4900, amount_refunded: 4900, status: 'succeeded', paid: true },\n           { amount: 2900, amount_refunded: 0, status: 'failed', paid: false }, { amount: 9900, amount_refunded: 0, status: 'succeeded', paid: true }] } }];\n"
+   },
+   "id": "89fd189b-afd9-5bfe-86f4-f17a3b9f05cb",
+   "name": "Sample data",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    1040,
+    400
+   ]
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "63e46c8f-f6cb-5c74-b5a0-7d267316c56a",
+       "leftValue": "={{ $('Config').first().json.use_hubspot }}",
+       "operator": {
+        "type": "string",
+        "operation": "equals"
+       },
+       "rightValue": "true"
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "63e46c8f-f6cb-5c74-b5a0-7d267316c56a",
+   "name": "Use HubSpot?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    1040,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Config').first().json.hubspot_api_base }}/crm/v3/objects/deals/search",
+    "options": {
+     "pagination": {
+      "pagination": {
+       "paginationMode": "updateAParameterInEachRequest",
+       "parameters": {
+        "parameters": [
+         {
+          "type": "body",
+          "name": "after",
+          "value": "={{ $response.body.paging?.next?.after }}"
+         }
+        ]
+       },
+       "paginationCompleteWhen": "other",
+       "completeExpression": "={{ !$response.body.paging?.next?.after }}",
+       "limitPagesFetched": true,
+       "maxRequests": 20
+      }
+     }
+    },
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "hubspotAppToken",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ filterGroups: [{ filters: [{ propertyName: 'createdate', operator: 'GTE', value: String($('Last week').first().json.start_ms) }, { propertyName: 'createdate', operator: 'LT', value: String($('Last week').first().json.end_ms) }] }], properties: ['amount', 'dealstage'], limit: 100, after: undefined }) }}"
+   },
+   "id": "256d18b8-c4c0-5687-941c-909274295425",
+   "name": "Deals created",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1300,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueRegularOutput",
+   "executeOnce": true
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Config').first().json.hubspot_api_base }}/crm/v3/objects/deals/search",
+    "options": {
+     "pagination": {
+      "pagination": {
+       "paginationMode": "updateAParameterInEachRequest",
+       "parameters": {
+        "parameters": [
+         {
+          "type": "body",
+          "name": "after",
+          "value": "={{ $response.body.paging?.next?.after }}"
+         }
+        ]
+       },
+       "paginationCompleteWhen": "other",
+       "completeExpression": "={{ !$response.body.paging?.next?.after }}",
+       "limitPagesFetched": true,
+       "maxRequests": 20
+      }
+     }
+    },
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "hubspotAppToken",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ filterGroups: [{ filters: [{ propertyName: 'closedate', operator: 'GTE', value: String($('Last week').first().json.start_ms) }, { propertyName: 'closedate', operator: 'LT', value: String($('Last week').first().json.end_ms) }, { propertyName: 'hs_is_closed_won', operator: 'EQ', value: 'true' }] }], properties: ['amount', 'dealstage'], limit: 100, after: undefined }) }}"
+   },
+   "id": "d7bd42a0-4484-540b-aa2f-9aed2e918188",
+   "name": "Deals won",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1560,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueRegularOutput",
+   "executeOnce": true
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "={{ $('Config').first().json.hubspot_api_base }}/crm/v3/objects/deals/search",
+    "options": {
+     "pagination": {
+      "pagination": {
+       "paginationMode": "updateAParameterInEachRequest",
+       "parameters": {
+        "parameters": [
+         {
+          "type": "body",
+          "name": "after",
+          "value": "={{ $response.body.paging?.next?.after }}"
+         }
+        ]
+       },
+       "paginationCompleteWhen": "other",
+       "completeExpression": "={{ !$response.body.paging?.next?.after }}",
+       "limitPagesFetched": true,
+       "maxRequests": 20
+      }
+     }
+    },
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "hubspotAppToken",
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify({ filterGroups: [{ filters: [{ propertyName: 'hs_is_closed', operator: 'EQ', value: 'false' }] }], properties: ['amount', 'dealstage'], limit: 100, after: undefined }) }}"
+   },
+   "id": "dbdf1de2-cb21-58db-ab64-2973fec145ea",
+   "name": "Open deals",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    1820,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueRegularOutput",
+   "executeOnce": true
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "05d57fc2-ce46-5869-b90b-dceff164a12d",
+       "leftValue": "={{ $('Config').first().json.use_quickbooks }}",
+       "operator": {
+        "type": "string",
+        "operation": "equals"
+       },
+       "rightValue": "true"
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "05d57fc2-ce46-5869-b90b-dceff164a12d",
+   "name": "Use QuickBooks?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    2080,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "={{ $('Config').first().json.qbo_base_url }}/v3/company/{{ $('Config').first().json.realm_id }}/query",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "quickBooksOAuth2Api",
+    "sendQuery": true,
+    "queryParameters": {
+     "parameters": [
+      {
+       "name": "query",
+       "value": "=select TotalAmt, Balance from Invoice where TxnDate >= '{{ $('Last week').first().json.start_date }}' and TxnDate <= '{{ $('Last week').first().json.end_date }}' MAXRESULTS 1000"
+      },
+      {
+       "name": "minorversion",
+       "value": "73"
+      }
+     ]
+    }
+   },
+   "id": "08759363-a97c-5e6f-9706-1323a5305a64",
+   "name": "Invoices sent",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2340,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueRegularOutput",
+   "executeOnce": true
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "={{ $('Config').first().json.qbo_base_url }}/v3/company/{{ $('Config').first().json.realm_id }}/query",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "quickBooksOAuth2Api",
+    "sendQuery": true,
+    "queryParameters": {
+     "parameters": [
+      {
+       "name": "query",
+       "value": "=select TotalAmt from Payment where TxnDate >= '{{ $('Last week').first().json.start_date }}' and TxnDate <= '{{ $('Last week').first().json.end_date }}' MAXRESULTS 1000"
+      },
+      {
+       "name": "minorversion",
+       "value": "73"
+      }
+     ]
+    }
+   },
+   "id": "2928f655-582f-5b3f-95b1-524cd91e5449",
+   "name": "Payments received",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2600,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueRegularOutput",
+   "executeOnce": true
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "={{ $('Config').first().json.qbo_base_url }}/v3/company/{{ $('Config').first().json.realm_id }}/query",
+    "options": {},
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "quickBooksOAuth2Api",
+    "sendQuery": true,
+    "queryParameters": {
+     "parameters": [
+      {
+       "name": "query",
+       "value": "=select Balance, DueDate from Invoice where Balance > '0' MAXRESULTS 1000"
+      },
+      {
+       "name": "minorversion",
+       "value": "73"
+      }
+     ]
+    }
+   },
+   "id": "ddde8e0c-396f-5dde-88fe-7e1141703ba4",
+   "name": "Unpaid invoices",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    2860,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueRegularOutput",
+   "executeOnce": true
+  },
+  {
+   "parameters": {
+    "conditions": {
+     "options": {
+      "caseSensitive": true,
+      "leftValue": "",
+      "typeValidation": "loose"
+     },
+     "conditions": [
+      {
+       "id": "78758b5e-4333-5cca-ade1-a22dc596e869",
+       "leftValue": "={{ $('Config').first().json.use_stripe }}",
+       "operator": {
+        "type": "string",
+        "operation": "equals"
+       },
+       "rightValue": "true"
+      }
+     ],
+     "combinator": "and"
+    },
+    "options": {}
+   },
+   "id": "78758b5e-4333-5cca-ade1-a22dc596e869",
+   "name": "Use Stripe?",
+   "type": "n8n-nodes-base.if",
+   "typeVersion": 2,
+   "position": [
+    3120,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "GET",
+    "url": "={{ $('Config').first().json.stripe_api_base }}/v1/charges",
+    "options": {
+     "pagination": {
+      "pagination": {
+       "paginationMode": "updateAParameterInEachRequest",
+       "parameters": {
+        "parameters": [
+         {
+          "type": "qs",
+          "name": "starting_after",
+          "value": "={{ $response.body.data?.slice(-1)[0]?.id }}"
+         }
+        ]
+       },
+       "paginationCompleteWhen": "other",
+       "completeExpression": "={{ !$response.body.has_more }}",
+       "limitPagesFetched": true,
+       "maxRequests": 50
+      }
+     }
+    },
+    "authentication": "predefinedCredentialType",
+    "nodeCredentialType": "stripeApi",
+    "sendQuery": true,
+    "queryParameters": {
+     "parameters": [
+      {
+       "name": "created[gte]",
+       "value": "={{ Math.floor($('Last week').first().json.start_ms / 1000) }}"
+      },
+      {
+       "name": "created[lt]",
+       "value": "={{ Math.floor($('Last week').first().json.end_ms / 1000) }}"
+      },
+      {
+       "name": "limit",
+       "value": "100"
+      }
+     ]
+    }
+   },
+   "id": "1c7a0a57-d315-5bd6-adc0-18eae367582e",
+   "name": "Stripe charges",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    3380,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueRegularOutput",
+   "executeOnce": true
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// One row of numbers for the week. A source that is switched off shows blank; one that failed shows blank and is named in the email.\nconst cfg = $('Config').first().json, wk = $('Last week').first().json;\nconst S = $('Sample data').isExecuted ? $('Sample data').first().json : null;\nconst pages = n => S ? null : ($(n).isExecuted ? $(n).all().map(i => i.json) : null);   // HTTP pagination returns one item per page\nconst failed = [];\nconst take = (n, sampleKey) => {\n  if (S) return S[sampleKey] === undefined ? null : [].concat(S[sampleKey]);\n  const p = pages(n); if (!p) return null;\n  const bad = p.find(x => x.error); if (bad) { failed.push(`${n}: ${String(bad.error.message || bad.error).slice(0, 160)}`); return null; }\n  return p;\n};\nconst money = x => Math.round(x * 100) / 100, amt = r => Number((r.properties || {}).amount || 0);\nconst row = { week: wk.week };\nconst hc = take('Deals created', 'hs_created'), hw = take('Deals won', 'hs_won'), ho = take('Open deals', 'hs_open');\nconst hsSum = p => money(p.flatMap(x => x.results || []).reduce((s, r) => s + amt(r), 0));\nconst hsCount = p => p[0].total ?? p.flatMap(x => x.results || []).length;\nObject.assign(row, { deals_created: hc ? hsCount(hc) : '', deals_created_value: hc ? hsSum(hc) : '', deals_won: hw ? hsCount(hw) : '',\n  deals_won_value: hw ? hsSum(hw) : '', open_pipeline: ho ? hsSum(ho) : '' });\nconst qi = take('Invoices sent', 'qb_invoices'), qp = take('Payments received', 'qb_payments'), qo = take('Unpaid invoices', 'qb_open');\nconst qrows = (p, k) => p.flatMap(x => (x.QueryResponse || {})[k] || []);\nObject.assign(row, { invoiced: qi ? money(qrows(qi, 'Invoice').reduce((s, r) => s + Number(r.TotalAmt), 0)) : '',\n  payments_received: qp ? money(qrows(qp, 'Payment').reduce((s, r) => s + Number(r.TotalAmt), 0)) : '',\n  unpaid: qo ? money(qrows(qo, 'Invoice').reduce((s, r) => s + Number(r.Balance), 0)) : '',\n  overdue: qo ? money(qrows(qo, 'Invoice').filter(r => r.DueDate && r.DueDate < wk.today).reduce((s, r) => s + Number(r.Balance), 0)) : '' });\nconst sc = take('Stripe charges', 'stripe');\nconst ch = sc ? (S ? sc : sc.flatMap(x => x.data || [])).filter(c => !c.currency || c.currency === cfg.currency) : null;\nObject.assign(row, { card_payments: ch ? money(ch.filter(c => c.paid).reduce((s, c) => s + (c.amount - c.amount_refunded) / 100, 0)) : '',\n  refunds: ch ? money(ch.reduce((s, c) => s + c.amount_refunded / 100, 0)) : '', failed_payments: ch ? ch.filter(c => c.status === 'failed').length : '' });\nreturn [{ json: { row, failed } }];\n"
+   },
+   "id": "756dca82-fdb6-5bfb-96dd-782e14e554ae",
+   "name": "Work out the numbers",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    3640,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "operation": "read",
+    "documentId": {
+     "__rl": true,
+     "mode": "url",
+     "value": "https://docs.google.com/spreadsheets/d/REPLACE_ME/edit"
+    },
+    "sheetName": {
+     "__rl": true,
+     "mode": "name",
+     "value": "Weekly KPIs"
+    },
+    "options": {}
+   },
+   "id": "5d4e1fa1-b5d2-5de4-a460-49cb13f9011d",
+   "name": "Read earlier weeks",
+   "type": "n8n-nodes-base.googleSheets",
+   "typeVersion": 4.5,
+   "position": [
+    3900,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueRegularOutput",
+   "alwaysOutputData": true
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// Finds last week's row in the sheet (if any) and works out the change for each number. Re-running a week replaces its row.\nconst { row, failed } = $('Work out the numbers').first().json;\nconst rows = $('Read earlier weeks').all().map(i => i.json).filter(r => r.week && r.week < row.week).sort((a, b) => a.week < b.week ? -1 : 1);\nconst prev = rows[rows.length - 1] || null;\nconst LABEL = { deals_created: 'New deals', deals_created_value: 'New deal value', deals_won: 'Deals won', deals_won_value: 'Won value',\n  open_pipeline: 'Open pipeline', invoiced: 'Invoiced', payments_received: 'Payments received', unpaid: 'Unpaid invoices', overdue: 'Overdue',\n  card_payments: 'Card payments (net)', refunds: 'Refunds', failed_payments: 'Failed card payments' };\nconst COUNTS = ['deals_created', 'deals_won', 'failed_payments'], lines = [];\nfor (const [k, label] of Object.entries(LABEL)) {\n  if (row[k] === '' || row[k] === undefined) continue;\n  const v = Number(row[k]), p = prev && prev[k] !== '' && prev[k] !== undefined ? Number(prev[k]) : null;\n  const ch = p === null ? '' : p === 0 ? (v === 0 ? ' (no change)' : ' (new)') : ` (${v >= p ? '+' : ''}${Math.round((v - p) / Math.abs(p) * 100)}% on last week)`;\n  lines.push(`${label}: ${COUNTS.includes(k) ? v : v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${ch}`);\n}\nif (failed.length) lines.push('', 'Could not read:', ...failed.map(f => '- ' + f));\nreturn [{ json: { row, text: `Week of ${row.week}\\n\\n` + lines.join('\\n'), subject: `${$('Config').first().json.workflow_label}: week of ${row.week}${failed.length ? ' (some sources failed)' : ''}` } }];\n"
+   },
+   "id": "c1a16dda-3b49-5e4f-a461-f456214bdbfb",
+   "name": "Compare with last week",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    4160,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "jsCode": "return [{ json: $('Compare with last week').first().json.row }];"
+   },
+   "id": "33759584-453d-5e98-a5b3-bcbb7b92b87e",
+   "name": "Sheet row",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    4420,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "operation": "appendOrUpdate",
+    "documentId": {
+     "__rl": true,
+     "mode": "url",
+     "value": "https://docs.google.com/spreadsheets/d/REPLACE_ME/edit"
+    },
+    "sheetName": {
+     "__rl": true,
+     "mode": "name",
+     "value": "Weekly KPIs"
+    },
+    "options": {},
+    "columns": {
+     "mappingMode": "autoMapInputData",
+     "value": {},
+     "matchingColumns": [
+      "week"
+     ],
+     "schema": []
+    }
+   },
+   "id": "c1b947c1-01e7-5de2-ae90-46c223d28ef6",
+   "name": "Save to sheet",
+   "type": "n8n-nodes-base.googleSheets",
+   "typeVersion": 4.5,
+   "position": [
+    4680,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "fromEmail": "={{ $('Config').first().json.from_email }}",
+    "toEmail": "={{ $('Config').first().json.report_to }}",
+    "subject": "={{ $('Compare with last week').first().json.subject }}",
+    "emailFormat": "text",
+    "text": "={{ $('Compare with last week').first().json.text }}",
+    "options": {}
+   },
+   "id": "bffc5365-0c0f-5330-9c34-b739a62c168d",
+   "name": "Email the summary",
+   "type": "n8n-nodes-base.emailSend",
+   "typeVersion": 2.1,
+   "position": [
+    4940,
+    0
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000,
+   "onError": "continueErrorOutput"
+  },
+  {
+   "parameters": {
+    "jsCode": "\n// One alert for every failure path. $prevNode names the step that failed.\nconst cfg = $('Config').first().json;\nreturn $input.all().map(i => {\n  const e = i.json.error;\n  const msg = String((typeof e === 'string' ? e : e && (e.description || e.message)) || i.json.message || JSON.stringify(i.json)).slice(0, 400);\n  return { json: { text: `${cfg.workflow_label}: ${$prevNode.name} failed${i.json.ref ? ' for ' + i.json.ref : ''}. ${msg}` } };\n});\n"
+   },
+   "id": "b60c5b01-6070-5daf-b3be-3fcccf362f89",
+   "name": "Describe failure",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    4680,
+    600
+   ]
+  },
+  {
+   "parameters": {
+    "fromEmail": "={{ $('Config').first().json.from_email }}",
+    "toEmail": "={{ $('Config').first().json.report_to }}",
+    "subject": "={{ $('Config').first().json.workflow_label }}: the weekly report did not finish",
+    "emailFormat": "text",
+    "text": "={{ $json.text }}",
+    "options": {}
+   },
+   "id": "afb18d27-48f4-530a-881f-86fbb19665c2",
+   "name": "Failure alert",
+   "type": "n8n-nodes-base.emailSend",
+   "typeVersion": 2.1,
+   "position": [
+    4940,
+    600
+   ],
+   "retryOnFail": true,
+   "maxTries": 3,
+   "waitBetweenTries": 5000
+  },
+  {
+   "parameters": {
+    "content": "## Weekly numbers dashboard\nEvery Monday this reads last week's numbers from HubSpot (new deals, won deals, open pipeline), QuickBooks Online (invoiced, payments received, unpaid and overdue) and Stripe (card payments, refunds, failed payments), adds one row to a Google Sheets tab, and emails a summary with the change on the week before.\n\n**You need:** n8n · any of HubSpot (private app token), QuickBooks Online (OAuth2), Stripe (secret key) · a Google Sheet · SMTP\n\n**Setup**\n1. Make a Google Sheet with a tab named `Weekly KPIs` and the header row from the README.\n2. Add credentials to the steps of the sources you use, and set `use_*` to `false` for the ones you don't.\n3. Fill in **Config**: `realm_id`, timezone, currency, emails.\n4. Click **Test workflow** to see the row and the email with sample data, then activate.\n\nNo credentials are included.",
+    "height": 1120,
+    "width": 780,
+    "color": 7
+   },
+   "id": "701853f9-5b67-5396-9ca1-f9b9d66beb59",
+   "name": "Note 1",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -860,
+    -420
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 1 · Read the week\nEach source is optional. A source that fails is named in the email, and the other numbers still go out.",
+    "height": 320,
+    "width": 2600,
+    "color": 4
+   },
+   "id": "583b9727-0106-5a8e-a98e-a408775892f2",
+   "name": "Note 2",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    960,
+    -420
+   ]
+  },
+  {
+   "parameters": {
+    "content": "### 2 · Sheet and email\nOne row per week (re-running a week updates its row), compared with the previous week.",
+    "height": 320,
+    "width": 1560,
+    "color": 4
+   },
+   "id": "db3085ae-26b1-57c7-97c7-d56ddd7ae688",
+   "name": "Note 3",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    3560,
+    -420
+   ]
+  }
+ ],
+ "connections": {
+  "Every Monday (7am)": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Test with sample data": {
+   "main": [
+    [
+     {
+      "node": "Config",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Config": {
+   "main": [
+    [
+     {
+      "node": "Last week",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Last week": {
+   "main": [
+    [
+     {
+      "node": "Sample run?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Sample run?": {
+   "main": [
+    [
+     {
+      "node": "Sample data",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Use HubSpot?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Sample data": {
+   "main": [
+    [
+     {
+      "node": "Work out the numbers",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Use HubSpot?": {
+   "main": [
+    [
+     {
+      "node": "Deals created",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Use QuickBooks?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Deals created": {
+   "main": [
+    [
+     {
+      "node": "Deals won",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Deals won": {
+   "main": [
+    [
+     {
+      "node": "Open deals",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Open deals": {
+   "main": [
+    [
+     {
+      "node": "Use QuickBooks?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Use QuickBooks?": {
+   "main": [
+    [
+     {
+      "node": "Invoices sent",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Use Stripe?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Invoices sent": {
+   "main": [
+    [
+     {
+      "node": "Payments received",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Payments received": {
+   "main": [
+    [
+     {
+      "node": "Unpaid invoices",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Unpaid invoices": {
+   "main": [
+    [
+     {
+      "node": "Use Stripe?",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Use Stripe?": {
+   "main": [
+    [
+     {
+      "node": "Stripe charges",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Work out the numbers",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Stripe charges": {
+   "main": [
+    [
+     {
+      "node": "Work out the numbers",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Work out the numbers": {
+   "main": [
+    [
+     {
+      "node": "Read earlier weeks",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Read earlier weeks": {
+   "main": [
+    [
+     {
+      "node": "Compare with last week",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Compare with last week": {
+   "main": [
+    [
+     {
+      "node": "Sheet row",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Sheet row": {
+   "main": [
+    [
+     {
+      "node": "Save to sheet",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Save to sheet": {
+   "main": [
+    [
+     {
+      "node": "Email the summary",
+      "type": "main",
+      "index": 0
+     }
+    ],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Email the summary": {
+   "main": [
+    [],
+    [
+     {
+      "node": "Describe failure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Describe failure": {
+   "main": [
+    [
+     {
+      "node": "Failure alert",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "active": false,
+ "settings": {
+  "executionOrder": "v1"
+ },
+ "meta": {
+  "templateCredsSetupCompleted": false
+ },
+ "tags": []
+}
