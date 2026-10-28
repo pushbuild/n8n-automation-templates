@@ -176,7 +176,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    1040,
+    1144.0,
     400
    ]
   },
@@ -208,7 +208,7 @@
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    1040,
+    1144.0,
     0
    ]
   },
@@ -247,7 +247,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    1300,
+    1404.0,
     0
    ],
    "retryOnFail": true,
@@ -291,7 +291,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    1560,
+    1664.0,
     0
    ],
    "retryOnFail": true,
@@ -335,7 +335,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    1820,
+    1924.0,
     0
    ],
    "retryOnFail": true,
@@ -372,7 +372,7 @@
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    2080,
+    2184.0,
     0
    ]
   },
@@ -402,7 +402,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    2340,
+    2444.0,
     0
    ],
    "retryOnFail": true,
@@ -437,7 +437,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    2600,
+    2704.0,
     0
    ],
    "retryOnFail": true,
@@ -472,7 +472,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    2860,
+    2964.0,
     0
    ],
    "retryOnFail": true,
@@ -509,7 +509,7 @@
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    3120,
+    3224.0,
     0
    ]
   },
@@ -562,7 +562,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    3380,
+    3484.0,
     0
    ],
    "retryOnFail": true,
@@ -580,7 +580,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    3640,
+    3744.0,
     0
    ]
   },
@@ -604,7 +604,7 @@
    "type": "n8n-nodes-base.googleSheets",
    "typeVersion": 4.5,
    "position": [
-    3900,
+    4004.0,
     0
    ],
    "retryOnFail": true,
@@ -622,7 +622,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    4160,
+    4264.0,
     0
    ]
   },
@@ -635,7 +635,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    4420,
+    4524.0,
     0
    ]
   },
@@ -667,7 +667,7 @@
    "type": "n8n-nodes-base.googleSheets",
    "typeVersion": 4.5,
    "position": [
-    4680,
+    4784.0,
     0
    ],
    "retryOnFail": true,
@@ -689,7 +689,7 @@
    "type": "n8n-nodes-base.emailSend",
    "typeVersion": 2.1,
    "position": [
-    4940,
+    5044.0,
     0
    ],
    "retryOnFail": true,
@@ -706,7 +706,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    4680,
+    4784.0,
     600
    ]
   },
@@ -724,7 +724,7 @@
    "type": "n8n-nodes-base.emailSend",
    "typeVersion": 2.1,
    "position": [
-    4940,
+    5044.0,
     600
    ],
    "retryOnFail": true,
@@ -734,8 +734,8 @@
   {
    "parameters": {
     "content": "## Weekly numbers dashboard\nEvery Monday this reads last week's numbers from HubSpot (new deals, won deals, open pipeline), QuickBooks Online (invoiced, payments received, unpaid and overdue) and Stripe (card payments, refunds, failed payments), adds one row to a Google Sheets tab, and emails a summary with the change on the week before.\n\n**You need:** n8n · any of HubSpot (private app token), QuickBooks Online (OAuth2), Stripe (secret key) · a Google Sheet · SMTP\n\n**Setup**\n1. Make a Google Sheet with a tab named `Weekly KPIs` and the header row from the README.\n2. Add credentials to the steps of the sources you use, and set `use_*` to `false` for the ones you don't.\n3. Fill in **Config**: `realm_id`, timezone, currency, emails.\n4. Click **Test workflow** to see the row and the email with sample data, then activate.\n\nNo credentials are included.",
-    "height": 1120,
-    "width": 780,
+    "height": 574,
+    "width": 1000,
     "color": 7
    },
    "id": "701853f9-5b67-5396-9ca1-f9b9d66beb59",
@@ -743,15 +743,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -860,
-    -420
+    -1100,
+    -384
    ]
   },
   {
    "parameters": {
     "content": "### 1 · Read the week\nEach source is optional. A source that fails is named in the email, and the other numbers still go out.",
-    "height": 320,
-    "width": 2600,
+    "height": 719,
+    "width": 2560.0,
     "color": 4
    },
    "id": "583b9727-0106-5a8e-a98e-a408775892f2",
@@ -759,15 +759,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    960,
-    -420
+    1084.0,
+    -129
    ]
   },
   {
    "parameters": {
     "content": "### 2 · Sheet and email\nOne row per week (re-running a week updates its row), compared with the previous week.",
-    "height": 320,
-    "width": 1560,
+    "height": 919,
+    "width": 1520.0,
     "color": 4
    },
    "id": "db3085ae-26b1-57c7-97c7-d56ddd7ae688",
@@ -775,8 +775,8 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    3560,
-    -420
+    3684.0,
+    -129
    ]
   }
  ],

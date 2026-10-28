@@ -186,7 +186,7 @@
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    520,
+    624.0,
     0
    ]
   },
@@ -224,7 +224,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    780,
+    884.0,
     0
    ],
    "retryOnFail": true,
@@ -260,7 +260,7 @@
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    1040,
+    1144.0,
     0
    ]
   },
@@ -273,7 +273,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    1300,
+    1404.0,
     400
    ]
   },
@@ -306,7 +306,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    1300,
+    1404.0,
     0
    ],
    "retryOnFail": true,
@@ -323,7 +323,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    780,
+    884.0,
     400
    ]
   },
@@ -336,7 +336,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    1560,
+    1664.0,
     0
    ]
   },
@@ -369,7 +369,7 @@
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    1820,
+    1924.0,
     0
    ]
   },
@@ -402,7 +402,7 @@
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    2080,
+    2184.0,
     0
    ]
   },
@@ -432,7 +432,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    2340,
+    2444.0,
     0
    ],
    "retryOnFail": true,
@@ -449,7 +449,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    2340,
+    2444.0,
     400
    ]
   },
@@ -462,7 +462,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    2600,
+    2704.0,
     0
    ]
   },
@@ -494,7 +494,7 @@
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    2860,
+    2964.0,
     0
    ]
   },
@@ -507,7 +507,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    3120,
+    3224.0,
     0
    ]
   },
@@ -525,7 +525,7 @@
    "type": "n8n-nodes-base.emailSend",
    "typeVersion": 2.1,
    "position": [
-    3380,
+    3484.0,
     0
    ],
    "retryOnFail": true,
@@ -542,7 +542,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    3120,
+    3224.0,
     600
    ]
   },
@@ -560,7 +560,7 @@
    "type": "n8n-nodes-base.emailSend",
    "typeVersion": 2.1,
    "position": [
-    3380,
+    3484.0,
     600
    ],
    "retryOnFail": true,
@@ -570,8 +570,8 @@
   {
    "parameters": {
     "content": "## Buildertrend → QuickBooks drift check\nEvery morning this compares the bills in your latest Buildertrend export with the bills in QuickBooks Online and emails what doesn't match: bills missing on either side, amounts typed differently, bills on the wrong job, and job totals that disagree. Problems already reported are marked so new ones stand out.\n\n**You need:** n8n · QuickBooks Online (Intuit developer app, OAuth2) · a Google Drive folder · an SMTP account for email\n\n**Setup**\n1. Export your Buildertrend bills report as CSV into one Google Drive folder (Buildertrend has no public API, so the export is the source).\n2. Add a **Google Drive OAuth2** and a **QuickBooks Online OAuth2** credential and select them on the three API steps; add **SMTP** on the two email steps.\n3. Fill in **Config**: folder id, `realm_id`, emails, and the `field_*` names to match your export's column headers.\n4. Click **Test workflow** to see the report with sample data, then activate.\n\nNo credentials are included. Guide: pushbuild.com/guides/buildertrend-quickbooks-reconciliation.html",
-    "height": 1120,
-    "width": 780,
+    "height": 616,
+    "width": 1000,
     "color": 7
    },
    "id": "f8a359b7-5e98-56f8-bbc9-b97d3bb456b9",
@@ -579,15 +579,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -860,
-    -420
+    -1100,
+    -426
    ]
   },
   {
    "parameters": {
     "content": "### 1 · Latest export\nFinds the newest CSV in the folder and warns if it is older than `max_export_age_hours`. Column names are read from Config.",
-    "height": 320,
-    "width": 1560,
+    "height": 719,
+    "width": 1520.0,
     "color": 4
    },
    "id": "5d7d91a9-3343-56bc-b635-e1fd51789ede",
@@ -595,15 +595,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    440,
-    -420
+    564.0,
+    -129
    ]
   },
   {
    "parameters": {
     "content": "### 2 · Compare\nMatches by bill number and vendor, then by vendor, amount and date. Tolerances are in Config. Job totals are compared too.",
-    "height": 320,
-    "width": 1040,
+    "height": 719,
+    "width": 1000.0,
     "color": 4
    },
    "id": "68aa5c56-4284-539b-a0c1-f4b50408dd22",
@@ -611,15 +611,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    2000,
-    -420
+    2124.0,
+    -129
    ]
   },
   {
    "parameters": {
     "content": "### 3 · Report and alerts\nOne plain email per morning, only when something needs a look (or always, with `send_when_clean`). Any failed step emails the reason.",
-    "height": 320,
-    "width": 520,
+    "height": 961,
+    "width": 480.0,
     "color": 4
    },
    "id": "fae0515c-7dfa-530c-8d1d-5844d4b4cd0c",
@@ -627,8 +627,8 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    3040,
-    -420
+    3164.0,
+    -171
    ]
   }
  ],

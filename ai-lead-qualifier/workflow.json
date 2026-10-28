@@ -462,7 +462,7 @@
    "type": "@n8n/n8n-nodes-langchain.agent",
    "typeVersion": 2.2,
    "position": [
-    2080,
+    2470.0,
     0
    ],
    "retryOnFail": true,
@@ -486,8 +486,8 @@
    "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
    "typeVersion": 1.2,
    "position": [
-    1820,
-    280.0
+    2340,
+    320.0
    ]
   },
   {
@@ -500,8 +500,8 @@
    "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
    "typeVersion": 1.3,
    "position": [
-    2080,
-    280.0
+    2600,
+    320.0
    ]
   },
   {
@@ -530,8 +530,8 @@
    "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
    "typeVersion": 1.1,
    "position": [
-    2340,
-    280.0
+    2860,
+    320.0
    ]
   },
   {
@@ -562,8 +562,8 @@
    "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
    "typeVersion": 1.1,
    "position": [
-    2600,
-    280.0
+    3120,
+    320.0
    ]
   },
   {
@@ -573,8 +573,8 @@
    "type": "@n8n/n8n-nodes-langchain.toolThink",
    "typeVersion": 1.1,
    "position": [
-    3120,
-    280.0
+    3380,
+    320.0
    ]
   },
   {
@@ -587,7 +587,7 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    2340,
+    3640,
     0
    ]
   },
@@ -619,7 +619,7 @@
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    2860,
+    3900,
     0
    ]
   },
@@ -652,7 +652,7 @@
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    2340,
+    3172.0,
     0
    ]
   },
@@ -663,8 +663,8 @@
    "type": "n8n-nodes-base.noOp",
    "typeVersion": 1,
    "position": [
-    3120,
-    -200
+    4160,
+    320.0
    ]
   },
   {
@@ -683,7 +683,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    2860,
+    4160,
     0
    ],
    "retryOnFail": true,
@@ -707,7 +707,7 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    3120,
+    4420,
     0
    ],
    "retryOnFail": true,
@@ -797,7 +797,7 @@
    "type": "n8n-nodes-base.switch",
    "typeVersion": 3.2,
    "position": [
-    3380,
+    4680,
     0
    ]
   },
@@ -817,8 +817,8 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    3640,
-    -200
+    4940,
+    0
    ],
    "retryOnFail": true,
    "maxTries": 3,
@@ -835,8 +835,8 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    3900,
-    -200
+    5200,
+    0
    ]
   },
   {
@@ -855,8 +855,8 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    4160,
-    -200
+    5460,
+    0
    ],
    "retryOnFail": true,
    "maxTries": 3,
@@ -892,8 +892,8 @@
    "type": "n8n-nodes-base.if",
    "typeVersion": 2,
    "position": [
-    4680,
-    -200
+    5720,
+    0
    ]
   },
   {
@@ -912,8 +912,8 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    4680,
-    -400
+    5980,
+    -200
    ],
    "retryOnFail": true,
    "maxTries": 3,
@@ -934,8 +934,8 @@
    "type": "n8n-nodes-base.emailSend",
    "typeVersion": 2.1,
    "position": [
-    4940,
-    -200
+    6240,
+    0
    ],
    "retryOnFail": true,
    "maxTries": 3,
@@ -956,8 +956,8 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    5200,
-    -200
+    6500,
+    0
    ],
    "retryOnFail": true,
    "maxTries": 3,
@@ -978,8 +978,8 @@
    "type": "n8n-nodes-base.emailSend",
    "typeVersion": 2.1,
    "position": [
-    3640,
-    200
+    4940,
+    480.0
    ],
    "retryOnFail": true,
    "maxTries": 3,
@@ -1000,8 +1000,8 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    3900,
-    200
+    5200,
+    480.0
    ],
    "retryOnFail": true,
    "maxTries": 3,
@@ -1022,8 +1022,8 @@
    "type": "n8n-nodes-base.emailSend",
    "typeVersion": 2.1,
    "position": [
-    3640,
-    400
+    4940,
+    720.0
    ],
    "retryOnFail": true,
    "maxTries": 3,
@@ -1039,8 +1039,8 @@
    "type": "n8n-nodes-base.code",
    "typeVersion": 2,
    "position": [
-    5200,
-    400
+    5980,
+    600
    ]
   },
   {
@@ -1057,8 +1057,8 @@
    "type": "n8n-nodes-base.httpRequest",
    "typeVersion": 4.2,
    "position": [
-    5460,
-    400
+    6240,
+    600
    ],
    "retryOnFail": true,
    "maxTries": 3,
@@ -1067,8 +1067,8 @@
   {
    "parameters": {
     "content": "## AI lead qualifier: research, score and route every inbound lead\nAn AI agent reads each new lead, researches the company's website, checks HubSpot for history, and scores fit, intent and authority. Your rules then decide the tier: **hot** leads get a deal, three real free times from your calendar (the first one held), a tailored reply and a Slack alert to the right owner; **warm** leads get a reply with your booking link; **nurture** leads get a polite reply; spam is dropped. Existing customers skip the AI and go straight to their owner. Every outside call retries and any failure reaches Slack.\n\n**You need:** n8n 1.110+ · OpenAI API key · HubSpot private app token (scopes: crm.objects.contacts, companies and deals read/write) · Google Calendar · SMTP · Slack incoming webhook\n\n**Setup**\n1. Add credentials: OpenAI on **OpenAI chat model**; HubSpot App Token on the HubSpot steps and **Look up company in HubSpot**; Google Calendar OAuth2 on the two calendar steps; SMTP on the three reply steps.\n2. Fill in **Config**: what you sell, your ideal customer, thresholds, owners, calendar, booking link, signature, Slack URL.\n3. Click **Test workflow** to run the sample lead end to end.\n4. Share the **Lead form** URL, or point your site's form at **Website form (webhook)** and set the `field_*` names to match. Activate.\n\nNo credentials are included. More templates: n8n.io/creators/pushbuild",
-    "height": 1320,
-    "width": 1040,
+    "height": 637,
+    "width": 1260,
     "color": 7
    },
    "id": "407b68e7-d279-5d63-b863-d181f56b6915",
@@ -1076,15 +1076,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -1120,
-    -620
+    -1360,
+    -447
    ]
   },
   {
    "parameters": {
     "content": "### 1 · Capture\nThree ways in: the built-in n8n form, your own site's form via webhook, or the sample lead for testing.",
-    "height": 720,
-    "width": 520,
+    "height": 740,
+    "width": 480,
     "color": 5
    },
    "id": "9d8f17a5-c8e2-5e84-88e3-0e88973616c7",
@@ -1092,15 +1092,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    -80,
-    -220
+    -60,
+    -150
    ]
   },
   {
    "parameters": {
     "content": "### 2 · Clean up and check\n**Normalize lead** maps your fields, spots personal and throwaway email addresses and sales-pitch spam. **Skip repeats** ignores the same person twice within `dedupe_hours`. HubSpot is checked first: existing customers go straight to Slack for their owner.",
-    "height": 720,
-    "width": 1560,
+    "height": 740,
+    "width": 1780,
     "color": 4
    },
    "id": "fe098385-ec4c-5e13-979f-636a27dd584e",
@@ -1108,15 +1108,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    440,
-    -220
+    460,
+    -150
    ]
   },
   {
    "parameters": {
     "content": "### 3 · AI agent with tools\nThe agent researches the company's site, looks the company up in HubSpot, thinks it through, and returns a structured score, reasons, red flags, a next step and a reply draft. Tell it what you sell and who your ideal customer is in **Config**.",
-    "height": 720,
-    "width": 1560,
+    "height": 660.0,
+    "width": 1260,
     "color": 6
    },
    "id": "db48ece5-f92d-5a47-8e63-6aed73c41191",
@@ -1124,15 +1124,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    1740,
-    -220
+    2280,
+    -150
    ]
   },
   {
    "parameters": {
     "content": "### 4 · Your rules decide\n**Apply scoring rules** sets the tier from the score and your thresholds, caps personal email addresses at warm unless the score is 90+, assigns an owner by company size from `owners_json`, and flags after-hours leads. The contact is upserted and the AI's reasoning is logged as a HubSpot note.",
-    "height": 320,
-    "width": 1300,
+    "height": 660.0,
+    "width": 1260,
     "color": 3
    },
    "id": "65d94963-0ab8-5d37-99f1-453b5e56e619",
@@ -1140,15 +1140,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    2520,
-    -420
+    3580,
+    -150
    ]
   },
   {
    "parameters": {
     "content": "### 5 · Hot leads\nReads your calendar's free/busy, picks one free time on each of the next three working days, opens a deal, holds the first time as a tentative event, emails the lead the three times plus your booking link, and alerts Slack with the score, reasons and owner.",
-    "height": 520,
-    "width": 1820,
+    "height": 540,
+    "width": 1780,
     "color": 2
    },
    "id": "df8489e4-fb0d-5694-b2ca-8426d51be04f",
@@ -1156,15 +1156,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    3820,
-    -620
+    4880,
+    -350
    ]
   },
   {
    "parameters": {
     "content": "### 6 · Warm and nurture\nWarm leads get the tailored reply and your booking link, and Slack is told. Nurture leads get a polite reply and stay in HubSpot with the nurture lead status.",
-    "height": 520,
-    "width": 780,
+    "height": 601.0,
+    "width": 480,
     "color": 5
    },
    "id": "723aa0f3-6fb3-502f-b75a-87aff0cfc8c6",
@@ -1172,15 +1172,15 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    3820,
-    -20
+    4880,
+    309.0
    ]
   },
   {
    "parameters": {
     "content": "### 7 · Failure alert\nEvery HubSpot, calendar, email and AI step retries 3 times. Anything that still fails posts the step, the lead and the reason to Slack.",
-    "height": 320,
-    "width": 520,
+    "height": 361,
+    "width": 480,
     "color": 3
    },
    "id": "26042f21-b203-599b-9c85-26d0192a797e",
@@ -1188,8 +1188,8 @@
    "type": "n8n-nodes-base.stickyNote",
    "typeVersion": 1,
    "position": [
-    5120,
-    180
+    5920,
+    429
    ]
   }
  ],
