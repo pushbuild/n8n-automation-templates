@@ -33,7 +33,7 @@
   },
   {
    "parameters": {
-    "jsCode": "\n// A trimmed Shopify orders/paid payload. Run the workflow with \"Test workflow\" to see every step without a real order.\nreturn [{ json: { sample: true, body: {\n  id: 820982911946154500, name: '#1001', tags: '', note: 'Leave at the side door',\n  shipping_address: { first_name: 'Sam', last_name: 'Lee', address1: '12 Main St', city: 'Groton', province_code: 'MA', zip: '01450', country_code: 'US' },\n  shipping_lines: [{ title: 'Standard Shipping' }],\n  line_items: [\n    { quantity: 2, sku: 'MUG-BLU', title: 'Mug', variant_title: 'Blue', requires_shipping: true, properties: [{ name: 'Gift wrap', value: 'Yes' }] },\n    { quantity: 1, sku: '', title: 'Gift card', requires_shipping: false }\n  ] } } }];\n"
+    "jsCode": "\n// A trimmed Shopify orders/paid payload. Run the workflow with \"Test workflow\" to see every step without a real order.\nreturn [{ json: { sample: true, body: {\n  id: 820982911946154500, name: '#1001', tags: '', note: 'Leave at the side door',\n  shipping_address: { first_name: 'Sam', last_name: 'Lee', address1: '12 Main St', city: 'Springfield', province_code: 'MA', zip: '01103', country_code: 'US' },\n  shipping_lines: [{ title: 'Standard Shipping' }],\n  line_items: [\n    { quantity: 2, sku: 'MUG-BLU', title: 'Mug', variant_title: 'Blue', requires_shipping: true, properties: [{ name: 'Gift wrap', value: 'Yes' }] },\n    { quantity: 1, sku: '', title: 'Gift card', requires_shipping: false }\n  ] } } }];\n"
    },
    "id": "84daa462-e586-5335-8a1f-ceef7e2b0244",
    "name": "Sample order",
