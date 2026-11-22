@@ -553,10 +553,10 @@
   },
   {
    "parameters": {
-    "content": "## Completed job → QuickBooks Online invoice\nWhen a job, order or project is marked complete in another system, this creates the QuickBooks invoice once. It checks the invoice number first, matches the customer by email or name (or creates them), can email the invoice, and posts every result and failure to Slack.\n\n**You need:** n8n · a QuickBooks Online company and an Intuit developer app (OAuth2) · a Slack incoming webhook\n\n**Setup**\n1. Create a **QuickBooks Online OAuth2 API** credential and select it on the five QuickBooks steps.\n2. Fill in **Config**: `realm_id`, `default_item_id`, Slack URL. Keep `qbo_base_url` on the sandbox to start.\n3. Set the `field_*` names in **Config** to match your system's payload.\n4. Click **Test workflow** to send the sample job to your sandbox company.\n5. Point your system's webhook at **Job completed**, then switch `qbo_base_url` to `https://quickbooks.api.intuit.com`.\n\nNo credentials are included. Guide: pushbuild.com/guides/quickbooks-automation.html",
+    "content": "## Create QuickBooks Online invoices from completed jobs, once each\nFor service businesses whose jobs or orders live in another system and are invoiced by hand in QuickBooks Online.\n\n### How it works\n1. **Job completed (webhook)** receives the job; **Map job** reads it using the `field_*` names in **Config** and rejects jobs with no id, customer or valid line.\n2. **Find invoice by number** checks QuickBooks first, so a re-sent webhook never creates a second invoice.\n3. **Find customer** matches by email, then display name, and **Create customer** adds new ones.\n4. **Create invoice** maps lines to your items with `due_days`; **Send invoice** can email it from QuickBooks.\n5. Every QuickBooks call retries 3 times; results and failures post to Slack.\n\n### Setup\n1. Create a QuickBooks Online OAuth2 API credential and select it on the five QuickBooks steps.\n2. Fill in **Config**: `realm_id`, `default_item_id`, Slack webhook URL. Keep `qbo_base_url` on the sandbox to start.\n3. Set the `field_*` names to match your system's payload.\n4. Click **Test workflow** to invoice the sample job in your sandbox company.\n5. Point your system's webhook at **Job completed (webhook)**, switch `qbo_base_url` to production, and activate.\n\n### Customization\n- Change `invoice_prefix`, or map more fields (class, location, memo) in **Build invoice**.\n\nNo credentials are included.",
     "height": 1120,
     "width": 780,
-    "color": 7
+    "color": 1
    },
    "id": "ed0f9a89-16fe-5aed-aa8f-250867f3c816",
    "name": "Note 1",
@@ -569,10 +569,10 @@
   },
   {
    "parameters": {
-    "content": "### 1 · Receive and map\nThe webhook, or **Test with sample data**, feeds **Map job**, which reads your payload using the `field_*` names in Config and checks it. A job with no id, no customer or a bad line goes to the alert instead.",
+    "content": "## Receive and map\nThe webhook, or **Test with sample data**, feeds **Map job**, which reads your payload using the `field_*` names in Config and checks it. A job with no id, no customer or a bad line goes to the alert instead.",
     "height": 720,
     "width": 1040,
-    "color": 5
+    "color": 7
    },
    "id": "8dbb8096-dd9d-5ccf-a04c-c8700c55ceca",
    "name": "Note 2",
@@ -585,10 +585,10 @@
   },
   {
    "parameters": {
-    "content": "### 2 · Never invoice twice\nThe invoice number is the job id plus `invoice_prefix`. If QuickBooks already has it, Slack is told and nothing is created, so a re-sent webhook or a re-run is safe.",
+    "content": "## Never invoice twice\nThe invoice number is the job id plus `invoice_prefix`. If QuickBooks already has it, Slack is told and nothing is created, so a re-sent webhook or a re-run is safe.",
     "height": 520,
     "width": 520,
-    "color": 4
+    "color": 7
    },
    "id": "8102e850-d2d8-5ae2-bb58-7a2b664a2999",
    "name": "Note 3",
@@ -601,10 +601,10 @@
   },
   {
    "parameters": {
-    "content": "### 3 · Customer\nMatched by email when there is one, otherwise by display name; created if new.",
+    "content": "## Customer\nMatched by email when there is one, otherwise by display name; created if new.",
     "height": 520,
     "width": 780,
-    "color": 6
+    "color": 7
    },
    "id": "a22273f1-2afc-53c9-9c24-181fa930bc24",
    "name": "Note 4",
@@ -617,10 +617,10 @@
   },
   {
    "parameters": {
-    "content": "### 4 · Invoice, with retries\nEvery QuickBooks call retries 3 times, 5 s apart. Lines map to your items, the due date follows `due_days`, and `email_invoice` sends it from QuickBooks.",
+    "content": "## Invoice, with retries\nEvery QuickBooks call retries 3 times, 5 s apart. Lines map to your items, the due date follows `due_days`, and `email_invoice` sends it from QuickBooks.",
     "height": 520,
     "width": 1300,
-    "color": 3
+    "color": 7
    },
    "id": "7ef017ce-b67b-5941-80f7-7724a6e79c53",
    "name": "Note 5",
@@ -633,10 +633,10 @@
   },
   {
    "parameters": {
-    "content": "### 5 · Failure alert\nAny step that still fails (QuickBooks errors, expired login, bad data) posts the step, the job and QuickBooks' reason to Slack.",
+    "content": "## Failure alert\nAny step that still fails (QuickBooks errors, expired login, bad data) posts the step, the job and QuickBooks' reason to Slack.",
     "height": 320,
     "width": 520,
-    "color": 2
+    "color": 7
    },
    "id": "c82c71ce-5db5-5aab-8b45-8a9209872323",
    "name": "Note 6",

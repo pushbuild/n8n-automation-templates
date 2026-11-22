@@ -1,5 +1,5 @@
 {
-  "name": "Google Sheet to Postgres: validate, upsert, report rejects (Pushbuild template)",
+  "name": "Sync a Google Sheet to Postgres with validation, change detection and soft deletes",
   "nodes": [
     {
       "parameters": {
@@ -12,10 +12,21 @@
           ]
         }
       },
-      "id": "fffea363-b2bf-5e9d-9d06-c5dca847b7d9",
+      "id": "7295bfbf-9dc2-525b-97db-69c8c8a6585d",
       "name": "Every hour",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e1435b6d-9bd1-5107-bcb9-e55ba9925ce4",
+      "name": "Test with sample data",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
       "position": [
         0,
         300
@@ -26,22 +37,85 @@
         "assignments": {
           "assignments": [
             {
-              "id": "811c8373-3713-5ca6-a9ce-fa671b916cb1",
-              "name": "slack_webhook_url",
-              "value": "https://hooks.slack.com/services/REPLACE_ME",
+              "id": "468f976f-64ea-5277-884c-81710b56d2e3",
+              "name": "workflow_label",
+              "value": "Sheet to Postgres sync",
               "type": "string"
+            },
+            {
+              "id": "1b1c09b2-b58a-5745-b106-c4631a97e02a",
+              "name": "slack_channel",
+              "value": "#ops-alerts",
+              "type": "string"
+            },
+            {
+              "id": "e1fdc576-e823-56b9-a385-ea6d1bd3fa32",
+              "name": "allowed_statuses",
+              "value": "active,paused,closed",
+              "type": "string"
+            },
+            {
+              "id": "677240f3-32da-5f7d-bd0a-7b0fdbec3882",
+              "name": "soft_delete_missing",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "04d6f1e1-93ea-5f71-8ab1-b7642536e6ba",
+              "name": "max_delete_share",
+              "value": 0.2,
+              "type": "number"
+            },
+            {
+              "id": "cf378a52-0687-5412-b82c-1b2fd22b7d2f",
+              "name": "report_when_clean",
+              "value": false,
+              "type": "boolean"
             }
           ]
         },
         "options": {}
       },
-      "id": "d02df19f-5e3a-57a5-8e87-65aadf126e24",
+      "id": "ed40bbe3-0c10-590b-990e-6740c0d7f597",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        220,
-        300
+        260,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "45ddae9b-5322-548f-8ea7-d07ad5cf5822",
+              "leftValue": "={{ $('Test with sample data').isExecuted }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e26c1879-3242-557e-967c-b29013488eff",
+      "name": "Sample run?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        520,
+        140
       ]
     },
     {
@@ -59,72 +133,90 @@
         },
         "options": {}
       },
-      "id": "2618359d-2a97-593e-bd69-a67ee143ff3b",
+      "id": "8c2e4c03-cbbb-5468-a99c-bef62caa30bb",
       "name": "Read sheet",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        440,
-        300
+        780,
+        40
+      ],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Six rows shaped like a real sheet, including the problems the checks catch.\nconst rows = [\n  { row_number: 2, id: 'C-1001', name: 'ada lovelace', email: 'Ada@Example.com ', status: 'Active', amount: '1,250.00' },\n  { row_number: 3, id: 'C-1002', name: 'Grace Hopper', email: 'grace@example.com', status: 'paused', amount: '300' },\n  { row_number: 4, id: 'C-1003', name: 'Alan Turing', email: 'alan@example', status: 'active', amount: '90' },\n  { row_number: 5, id: 'C-1002', name: 'Grace H. (copy)', email: 'grace2@example.com', status: 'active', amount: '10' },\n  { row_number: 6, id: '', name: 'No id row', email: 'noid@example.com', status: 'active', amount: '5' },\n  { row_number: 7, id: 'C-1004', name: 'Katherine Johnson', email: 'katherine@example.com', status: 'retired', amount: 'n/a' },\n];\nreturn rows.map(r => ({ json: r }));"
+      },
+      "id": "29d30b4e-1b76-578b-96dd-7dc860aca63f",
+      "name": "Sample rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        260
       ]
     },
     {
       "parameters": {
-        "jsCode": "// One rule per line. Rows that fail go to the rejects report instead of the database.\nconst seen = new Set();\nreturn $input.all().map((i, n) => {\n  const r = i.json;\n  const row = {\n    external_id: String(r.id || r.ID || '').trim(),\n    name: String(r.name || r.Name || '').trim(),\n    email: String(r.email || r.Email || '').trim().toLowerCase(),\n    status: String(r.status || r.Status || 'active').trim().toLowerCase(),\n    amount: r.amount === '' || r.amount == null ? null : Number(String(r.amount).replace(/[^0-9.-]/g, '')),\n  };\n  const errors = [];\n  if (!row.external_id) errors.push('missing id');\n  if (seen.has(row.external_id)) errors.push('duplicate id');\n  if (row.email && !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(row.email)) errors.push('bad email');\n  if (row.amount !== null && Number.isNaN(row.amount)) errors.push('amount not a number');\n  if (!['active', 'paused', 'closed'].includes(row.status)) errors.push('unknown status');\n  seen.add(row.external_id);\n  return { json: errors.length ? { _valid: false, sheet_row: n + 2, errors: errors.join(', '), ...row } : { _valid: true, ...row } };\n});"
+        "jsCode": "// One rule per line. Rows that fail go to the rejects report instead of the database.\n// Change the column names on the right to match your sheet's headers.\nconst cfg = $('Config').first().json;\nconst allowed = String(cfg.allowed_statuses).split(',').map(s => s.trim().toLowerCase());\nconst fnv = s => { let h = 0x811c9dc5; for (const c of s) { h ^= c.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(16); };\nconst seen = new Set();\nconst valid = [], rejects = [];\nfor (const i of $input.all()) {\n  const r = i.json;\n  const row = {\n    external_id: String(r.id ?? r.ID ?? '').trim(),\n    name: String(r.name ?? r.Name ?? '').trim().replace(/\\s+/g, ' ').replace(/\\b\\w/g, c => c.toUpperCase()),\n    email: String(r.email ?? r.Email ?? '').trim().toLowerCase(),\n    status: String(r.status ?? r.Status ?? 'active').trim().toLowerCase(),\n    amount: null,\n  };\n  // \"1,250.00\" and \"300\" load as numbers; \"n/a\" is rejected.\n  const rawAmount = String(r.amount ?? r.Amount ?? '').trim();\n  if (rawAmount) { const n = rawAmount.replace(/[^0-9.-]/g, ''); row.amount = /\\d/.test(n) ? Number(n) : NaN; }\n  const errors = [];\n  if (!row.external_id) errors.push('missing id');\n  else if (seen.has(row.external_id)) errors.push(`duplicate id ${row.external_id}`);\n  if (row.email && !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(row.email)) errors.push(`bad email \"${row.email}\"`);\n  if (!allowed.includes(row.status)) errors.push(`unknown status \"${row.status}\"`);\n  if (row.amount !== null && Number.isNaN(row.amount)) errors.push(`amount \"${rawAmount}\" is not a number`);\n  if (row.external_id) seen.add(row.external_id);\n  if (errors.length) { rejects.push({ sheet_row: r.row_number ?? null, id: row.external_id, errors: errors.join('; ') }); continue; }\n  row.row_hash = fnv(JSON.stringify([row.name, row.email, row.status, row.amount]));\n  valid.push(row);\n}\nreturn [{ json: { valid, rejects, sheet_rows: $input.all().length } }];"
       },
-      "id": "ef95dd13-f861-5847-b496-234890329db9",
+      "id": "b7fad033-a059-5ac4-8187-fcc00501c270",
       "name": "Validate and clean",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        660,
-        300
+        1040,
+        140
       ]
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
-            {
-              "id": "5fdc545d-36d2-5fbf-814a-23c70b349acb",
-              "leftValue": "={{ $json._valid }}",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
+        "operation": "executeQuery",
+        "query": "-- One row back even when the table is empty.\nselect coalesce(json_agg(json_build_object('external_id', external_id, 'row_hash', row_hash, 'deleted', deleted_at is not null)), '[]') as rows\nfrom records;",
         "options": {}
       },
-      "id": "fb4a524f-f314-595a-b6ab-2ec5ccef20f5",
-      "name": "Valid?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
+      "id": "95ee3d3c-b153-5a8c-9543-0387454edeaa",
+      "name": "Read current table",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
       "position": [
-        880,
-        300
-      ]
+        1300,
+        140
+      ],
+      "executeOnce": true,
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "const { _valid, ...row } = $json;\nreturn { json: row };"
+        "jsCode": "// Compare the sheet with the table: new, changed, unchanged, gone.\nconst cfg = $('Config').first().json;\nconst { valid, rejects, sheet_rows } = $('Validate and clean').first().json;\nconst rows = $input.first().json.rows;\nconst current = new Map((typeof rows === 'string' ? JSON.parse(rows) : rows).map(r => [r.external_id, r]));\nconst upserts = [], counts = { sheet_rows, new: 0, changed: 0, restored: 0, unchanged: 0, rejected: rejects.length };\nfor (const row of valid) {\n  const db = current.get(row.external_id);\n  if (!db) { counts.new++; upserts.push(row); }\n  else if (db.deleted) { counts.restored++; upserts.push(row); }\n  else if (db.row_hash !== row.row_hash) { counts.changed++; upserts.push(row); }\n  else counts.unchanged++;\n}\n// A rejected row still exists in the sheet, so it is never treated as deleted.\nconst inSheet = new Set([...valid.map(r => r.external_id), ...rejects.map(r => r.id).filter(Boolean)]);\nconst gone = [...current.values()].filter(r => !r.deleted && !inSheet.has(r.external_id)).map(r => r.external_id);\nconst live = [...current.values()].filter(r => !r.deleted).length;\n// Safety cap: a cleared or renamed tab would otherwise mark the whole table deleted.\nconst deleteBlocked = gone.length > 0 && live > 0 && gone.length / live > Number(cfg.max_delete_share);\nconst deletes = cfg.soft_delete_missing && !deleteBlocked ? gone : [];\ncounts.deleted = deletes.length;\nreturn [{ json: { upserts, deletes, rejects, counts, gone: gone.length, delete_blocked: deleteBlocked } }];"
       },
-      "id": "7c257e11-f674-5ee7-9f71-07f71c6d392b",
-      "name": "Table columns only",
+      "id": "bd436edf-5d35-5230-abeb-b1a3ee1dd86c",
+      "name": "Plan changes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1100,
-        200
+        1560,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item per new or changed row, with the time it was loaded.\nconst now = new Date().toISOString();\nreturn $input.first().json.upserts.map(r => ({ json: { ...r, updated_at: now, deleted_at: null } }));",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "9724ed67-94df-5533-80aa-d3e406b8ab44",
+      "name": "Rows to write",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        -60
       ]
     },
     {
@@ -150,44 +242,292 @@
         },
         "options": {}
       },
-      "id": "91fe3147-9713-51b8-a3ca-a42b5fb69b47",
+      "id": "8e7a1284-d098-5205-ae1c-3b167386cf13",
       "name": "Upsert into Postgres",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1320,
-        200
+        2080,
+        -60
+      ],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "69ed0b81-f388-5b20-8690-2f33d83d09c2",
+              "leftValue": "={{ $json.deletes.length }}",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              },
+              "rightValue": 0
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "586aac28-814b-507a-8b3d-53a53501e177",
+      "name": "Anything to delete?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        140
       ]
     },
     {
       "parameters": {
-        "jsCode": "const rows = $input.all().map(i => `row ${i.json.sheet_row}: ${i.json.errors}`);\nreturn [{ json: { text: `${rows.length} sheet rows were not loaded:\\n` + rows.slice(0, 30).join('\\n') } }];"
+        "operation": "executeQuery",
+        "query": "update records set deleted_at = now()\nwhere deleted_at is null\n  and external_id in (select jsonb_array_elements_text($1::jsonb));",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($json.deletes) ] }}"
+        }
       },
-      "id": "3e36797a-fe7b-5775-a30c-ca3f77d60c0b",
-      "name": "Summarize rejects",
+      "id": "583b47f2-db37-574c-bb29-bf0ce9c739e4",
+      "name": "Mark missing rows deleted",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2080,
+        140
+      ],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into sync_runs (sheet_rows, new_rows, changed_rows, restored_rows, unchanged_rows, rejected_rows, deleted_rows, delete_blocked)\nvalues ($1, $2, $3, $4, $5, $6, $7, $8);",
+        "options": {
+          "queryReplacement": "={{ [ $json.counts.sheet_rows, $json.counts.new, $json.counts.changed, $json.counts.restored, $json.counts.unchanged, $json.counts.rejected, $json.counts.deleted, $json.delete_blocked ] }}"
+        }
+      },
+      "id": "1fa7df22-646b-5596-8183-942daf1582f6",
+      "name": "Log the run",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1820,
+        360
+      ],
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "b9d11303-289d-5d60-b40f-46486bd98010",
+              "leftValue": "={{ $json.rejects.length > 0 || $json.delete_blocked || $('Config').first().json.report_when_clean }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e2728bc0-be84-521e-a68d-08b64c930ad4",
+      "name": "Anything to report?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One message: what changed, which rows were not loaded and why.\nconst cfg = $('Config').first().json;\nconst { counts, rejects, gone, delete_blocked } = $json;\nconst lines = [\n  `${cfg.workflow_label}: ${counts.sheet_rows} sheet rows. ${counts.new} new, ${counts.changed} changed, ${counts.restored} restored, ${counts.unchanged} unchanged, ${counts.deleted} marked deleted, ${counts.rejected} not loaded.`,\n];\nif (delete_blocked) lines.push(`${gone} table rows are missing from the sheet, more than ${Math.round(cfg.max_delete_share * 100)}% of the table, so none were marked deleted. Check the tab, then raise max_delete_share if it is intended.`);\nif (rejects.length) lines.push('Not loaded:', ...rejects.slice(0, 30).map(r => `- row ${r.sheet_row}: ${r.errors}`));\nif (rejects.length > 30) lines.push(`...and ${rejects.length - 30} more.`);\nreturn [{ json: { text: lines.join('\\n') } }];"
+      },
+      "id": "95fc9074-5793-5478-abd1-698b971a19f4",
+      "name": "Write report",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1100,
-        420
+        2080,
+        700
       ]
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ $('Config').first().json.slack_webhook_url }}",
-        "options": {},
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ text: $json.text }) }}"
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.slack_channel }}"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {}
       },
-      "id": "e4edaa7e-dcaa-579c-ae29-5d587b121464",
-      "name": "Report rejects (Slack)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "id": "56df3f12-455d-58e8-8b80-14724a8c8eed",
+      "name": "Post report (Slack)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
       "position": [
-        1320,
-        420
+        2340,
+        700
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// One alert for every failure path. $prevNode names the step that failed.\nconst cfg = $('Config').first().json;\nreturn $input.all().slice(0, 1).map(i => {\n  const e = i.json.error;\n  const msg = String((typeof e === 'string' ? e : e && (e.description || e.message)) || i.json.message || 'Open the execution in n8n for the reason (often a missing credential).').slice(0, 400);\n  return { json: { text: `${cfg.workflow_label}: ${$prevNode.name} failed. Nothing after it ran. ${msg}` } };\n});"
+      },
+      "id": "efc967d0-39d5-5391-95cc-8dac7e9c68f4",
+      "name": "Describe failure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2340,
+        940
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Config').first().json.slack_channel }}"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {}
+      },
+      "id": "30c8c469-5aa9-5af2-bb05-c22a8c7ae5cc",
+      "name": "Failure alert (Slack)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        2600,
+        940
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "content": "## Sync a Google Sheet to Postgres with validation, change detection and soft deletes\nFor teams whose Google Sheet has become their database and who want it in Postgres (Supabase, Neon, RDS or self-hosted) without losing the sheet people already edit.\n\n### How it works\n1. Every hour **Read sheet** reads the `Records` tab.\n2. **Validate and clean** trims and normalises each row and rejects missing or duplicate ids, bad emails, unknown statuses and non-numeric amounts.\n3. **Plan changes** compares a hash of each row with the table, so only new and changed rows are written.\n4. Rows removed from the sheet are marked deleted (`deleted_at`), never dropped. If more than `max_delete_share` of the table would go, nothing is marked and you are told.\n5. Each run is logged in `sync_runs`; rejected rows and blocked deletes are posted to Slack with the sheet row number.\n\n### Setup\n1. Run `schema.sql` (in the template's GitHub folder, or the two statements in the note below) in your database.\n2. Add a Postgres credential on the four Postgres steps, a Google Sheets credential on **Read sheet**, and a Slack credential on the two Slack steps.\n3. Paste your sheet URL into **Read sheet**; set the channel and options in **Config**.\n4. Click **Test workflow** to load six sample rows (two are rejected), run it again to see nothing rewritten, then activate.\n\n### Customization\n- Change the column mapping and rules in **Validate and clean**, and add the columns to `records`.\n\nNo credentials are included.",
+        "height": 1000,
+        "width": 920,
+        "color": 1
+      },
+      "id": "60e4f79c-1861-5b9b-8d4d-9f8dd5fb5218",
+      "name": "Note a8ebc6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1000,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Table setup\n```sql\ncreate table records (external_id text primary key, name text, email text, status text, amount numeric(12,2), row_hash text, updated_at timestamptz, deleted_at timestamptz);\ncreate table sync_runs (id bigserial primary key, run_at timestamptz default now(), sheet_rows int, new_rows int, changed_rows int, restored_rows int, unchanged_rows int, rejected_rows int, deleted_rows int, delete_blocked boolean);\n```",
+        "height": 380,
+        "width": 920,
+        "color": 7
+      },
+      "id": "195c5f56-9502-5521-99f0-c8b51e34143d",
+      "name": "Note 575e02",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1000,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Read and check\nThe sample path needs no Google credential. Rejected rows are reported, not loaded.",
+        "height": 600,
+        "width": 480,
+        "color": 7
+      },
+      "id": "7bd2826e-fa26-544b-b12c-5a2ba73fe906",
+      "name": "Note 12b115",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        740,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Compare with the table\nOnly new, changed and restored rows are written.",
+        "height": 600,
+        "width": 480,
+        "color": 7
+      },
+      "id": "1c209c2b-ccb6-5b6d-9f6a-f345432cca8b",
+      "name": "Note 335365",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Write, delete and log\nDeletes are soft and capped by `max_delete_share`.",
+        "height": 820,
+        "width": 560,
+        "color": 7
+      },
+      "id": "9615bb25-7a1c-5a12-9e25-3f05d2d09759",
+      "name": "Note 6125d6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Report and failures\nAny Postgres or Sheets step that fails after 3 tries posts the step and the reason to Slack.",
+        "height": 520,
+        "width": 1080,
+        "color": 7
+      },
+      "id": "559bf557-d9c6-50e4-9bd6-0a1048c72248",
+      "name": "Note bea586",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        600
       ]
     }
   ],
@@ -203,8 +543,37 @@
         ]
       ]
     },
+    "Test with sample data": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Config": {
       "main": [
+        [
+          {
+            "node": "Sample run?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sample run?": {
+      "main": [
+        [
+          {
+            "node": "Sample rows",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Read sheet",
@@ -222,6 +591,24 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Describe failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sample rows": {
+      "main": [
+        [
+          {
+            "node": "Validate and clean",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -229,32 +616,58 @@
       "main": [
         [
           {
-            "node": "Valid?",
+            "node": "Read current table",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Valid?": {
+    "Read current table": {
       "main": [
         [
           {
-            "node": "Table columns only",
+            "node": "Plan changes",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Summarize rejects",
+            "node": "Describe failure",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Table columns only": {
+    "Plan changes": {
+      "main": [
+        [
+          {
+            "node": "Rows to write",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Anything to delete?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log the run",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Anything to report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rows to write": {
       "main": [
         [
           {
@@ -265,11 +678,80 @@
         ]
       ]
     },
-    "Summarize rejects": {
+    "Anything to delete?": {
       "main": [
         [
           {
-            "node": "Report rejects (Slack)",
+            "node": "Mark missing rows deleted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anything to report?": {
+      "main": [
+        [
+          {
+            "node": "Write report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write report": {
+      "main": [
+        [
+          {
+            "node": "Post report (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert into Postgres": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Describe failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark missing rows deleted": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Describe failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log the run": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Describe failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Describe failure": {
+      "main": [
+        [
+          {
+            "node": "Failure alert (Slack)",
             "type": "main",
             "index": 0
           }
@@ -284,5 +766,6 @@
   "meta": {
     "templateCredsSetupCompleted": false
   },
-  "tags": []
+  "tags": [],
+  "pinData": {}
 }

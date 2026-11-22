@@ -1066,10 +1066,10 @@
   },
   {
    "parameters": {
-    "content": "## AI lead qualifier: research, score and route every inbound lead\nAn AI agent reads each new lead, researches the company's website, checks HubSpot for history, and scores fit, intent and authority. Your rules then decide the tier: **hot** leads get a deal, three real free times from your calendar (the first one held), a tailored reply and a Slack alert to the right owner; **warm** leads get a reply with your booking link; **nurture** leads get a polite reply; spam is dropped. Existing customers skip the AI and go straight to their owner. Every outside call retries and any failure reaches Slack.\n\n**You need:** n8n 1.110+ · OpenAI API key · HubSpot private app token (scopes: crm.objects.contacts, companies and deals read/write) · Google Calendar · SMTP · Slack incoming webhook\n\n**Setup**\n1. Add credentials: OpenAI on **OpenAI chat model**; HubSpot App Token on the HubSpot steps and **Look up company in HubSpot**; Google Calendar OAuth2 on the two calendar steps; SMTP on the three reply steps.\n2. Fill in **Config**: what you sell, your ideal customer, thresholds, owners, calendar, booking link, signature, Slack URL.\n3. Click **Test workflow** to run the sample lead end to end.\n4. Share the **Lead form** URL, or point your site's form at **Website form (webhook)** and set the `field_*` names to match. Activate.\n\nNo credentials are included. More templates: n8n.io/creators/pushbuild",
+    "content": "## Qualify inbound leads with an AI agent, HubSpot, Google Calendar and Slack\nFor B2B teams that get more inbound leads than they can research by hand. An AI agent reads each lead, checks the company's website and HubSpot history, and scores fit, intent and authority. Your rules, not the model, decide the tier.\n\n### How it works\n1. Leads arrive from the built-in **Lead form**, your site's form via **Website form (webhook)**, or **Test with sample data**.\n2. Leads are cleaned, repeats skipped, and existing customers routed straight to their owner.\n3. **Qualify lead (AI agent)** returns a structured score; **Apply scoring rules** sets the tier.\n4. **Hot**: HubSpot deal, three free times from your calendar (first one held), tailored reply, Slack alert. **Warm**: reply with your booking link. **Nurture**: polite reply. Spam is dropped.\n5. Every outside call retries, and any failure posts to Slack.\n\n### Setup\n1. Credentials: OpenAI on **OpenAI chat model**; HubSpot App Token (contacts, companies, deals read/write) on the HubSpot steps; Google Calendar OAuth2 on the calendar steps; SMTP on the reply steps.\n2. Fill in **Config**: what you sell, ideal customer, thresholds, owners, calendar id, booking link, signature, Slack webhook URL.\n3. Click **Test workflow** to run the sample lead end to end, then activate.\n\n### Customization\n- Change the weights and thresholds in **Apply scoring rules**.\n- Set the `field_*` names in **Config** to match your form.\n\nTested on n8n 1.110. No credentials are included.",
     "height": 637,
     "width": 1260,
-    "color": 7
+    "color": 1
    },
    "id": "407b68e7-d279-5d63-b863-d181f56b6915",
    "name": "Note 1",
@@ -1082,10 +1082,10 @@
   },
   {
    "parameters": {
-    "content": "### 1 · Capture\nThree ways in: the built-in n8n form, your own site's form via webhook, or the sample lead for testing.",
+    "content": "## Capture\nThree ways in: the built-in n8n form, your own site's form via webhook, or the sample lead for testing.",
     "height": 740,
     "width": 480,
-    "color": 5
+    "color": 7
    },
    "id": "9d8f17a5-c8e2-5e84-88e3-0e88973616c7",
    "name": "Note 2",
@@ -1098,10 +1098,10 @@
   },
   {
    "parameters": {
-    "content": "### 2 · Clean up and check\n**Normalize lead** maps your fields, spots personal and throwaway email addresses and sales-pitch spam. **Skip repeats** ignores the same person twice within `dedupe_hours`. HubSpot is checked first: existing customers go straight to Slack for their owner.",
+    "content": "## Clean up and check\n**Normalize lead** maps your fields, spots personal and throwaway email addresses and sales-pitch spam. **Skip repeats** ignores the same person twice within `dedupe_hours`. HubSpot is checked first: existing customers go straight to Slack for their owner.",
     "height": 740,
     "width": 1780,
-    "color": 4
+    "color": 7
    },
    "id": "fe098385-ec4c-5e13-979f-636a27dd584e",
    "name": "Note 3",
@@ -1114,10 +1114,10 @@
   },
   {
    "parameters": {
-    "content": "### 3 · AI agent with tools\nThe agent researches the company's site, looks the company up in HubSpot, thinks it through, and returns a structured score, reasons, red flags, a next step and a reply draft. Tell it what you sell and who your ideal customer is in **Config**.",
+    "content": "## AI agent with tools\nThe agent researches the company's site, looks the company up in HubSpot, thinks it through, and returns a structured score, reasons, red flags, a next step and a reply draft. Tell it what you sell and who your ideal customer is in **Config**.",
     "height": 660.0,
     "width": 1260,
-    "color": 6
+    "color": 7
    },
    "id": "db48ece5-f92d-5a47-8e63-6aed73c41191",
    "name": "Note 4",
@@ -1130,10 +1130,10 @@
   },
   {
    "parameters": {
-    "content": "### 4 · Your rules decide\n**Apply scoring rules** sets the tier from the score and your thresholds, caps personal email addresses at warm unless the score is 90+, assigns an owner by company size from `owners_json`, and flags after-hours leads. The contact is upserted and the AI's reasoning is logged as a HubSpot note.",
+    "content": "## Your rules decide\n**Apply scoring rules** sets the tier from the score and your thresholds, caps personal emails at warm below 90, and picks an owner from `owners_json`. The contact is upserted and the reasoning logged as a HubSpot note.",
     "height": 660.0,
     "width": 1260,
-    "color": 3
+    "color": 7
    },
    "id": "65d94963-0ab8-5d37-99f1-453b5e56e619",
    "name": "Note 5",
@@ -1146,10 +1146,10 @@
   },
   {
    "parameters": {
-    "content": "### 5 · Hot leads\nReads your calendar's free/busy, picks one free time on each of the next three working days, opens a deal, holds the first time as a tentative event, emails the lead the three times plus your booking link, and alerts Slack with the score, reasons and owner.",
+    "content": "## Hot leads\nReads your calendar's free/busy, picks one free time on each of the next three working days, opens a deal, holds the first time as a tentative event, emails the lead the three times plus your booking link, and alerts Slack with the score, reasons and owner.",
     "height": 540,
     "width": 1780,
-    "color": 2
+    "color": 7
    },
    "id": "df8489e4-fb0d-5694-b2ca-8426d51be04f",
    "name": "Note 6",
@@ -1162,10 +1162,10 @@
   },
   {
    "parameters": {
-    "content": "### 6 · Warm and nurture\nWarm leads get the tailored reply and your booking link, and Slack is told. Nurture leads get a polite reply and stay in HubSpot with the nurture lead status.",
+    "content": "## Warm and nurture\nWarm leads get the tailored reply and your booking link, and Slack is told. Nurture leads get a polite reply and stay in HubSpot with the nurture lead status.",
     "height": 601.0,
     "width": 480,
-    "color": 5
+    "color": 7
    },
    "id": "723aa0f3-6fb3-502f-b75a-87aff0cfc8c6",
    "name": "Note 7",
@@ -1178,10 +1178,10 @@
   },
   {
    "parameters": {
-    "content": "### 7 · Failure alert\nEvery HubSpot, calendar, email and AI step retries 3 times. Anything that still fails posts the step, the lead and the reason to Slack.",
+    "content": "## Failure alert\nEvery HubSpot, calendar, email and AI step retries 3 times. Anything that still fails posts the step, the lead and the reason to Slack.",
     "height": 361,
     "width": 480,
-    "color": 3
+    "color": 7
    },
    "id": "26042f21-b203-599b-9c85-26d0192a797e",
    "name": "Note 8",

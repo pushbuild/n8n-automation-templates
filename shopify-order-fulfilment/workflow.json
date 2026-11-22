@@ -404,10 +404,10 @@
   },
   {
    "parameters": {
-    "content": "## Shopify paid order → warehouse pick list\nWhen an order is paid, this checks Shopify's signature, builds a pick list from the shippable lines, emails it to your warehouse or 3PL once per order, and posts to Slack. Anything that fails or is skipped is posted to Slack too.\n\n**You need:** n8n with `NODE_FUNCTION_ALLOW_BUILTIN=crypto` · Shopify admin · SMTP · a Slack incoming webhook\n\n**Setup**\n1. Set `NODE_FUNCTION_ALLOW_BUILTIN=crypto` on n8n and restart.\n2. Fill in **Config**: signing secret, addresses, Slack URL and the mapping options.\n3. Add your SMTP credential to **Email pick list**.\n4. Click **Test workflow** to run the sample order.\n5. Shopify admin → Settings → Notifications → Webhooks → **Order payment** (JSON) → the production URL of **Order paid**. Activate.\n\nNo credentials are included. Guide: pushbuild.com/guides/shopify-automation.html",
+    "content": "## Email Shopify paid-order pick lists to your warehouse, once per order\nFor Shopify stores that ship through a small warehouse or 3PL that works from emailed pick lists.\n\n### How it works\n1. **Order paid (Shopify)** receives the order; **Verify signature** rejects anything Shopify did not sign.\n2. **Map order** builds the pick list: SKUs, quantities, ship-to address and shipping method, using the mapping in **Config**.\n3. **Already sent?** drops orders already sent; **Ship it?** skips tagged orders and orders with nothing to ship, and says so in Slack.\n4. **Email pick list** retries 3 times. On success the order is marked sent and Slack is told; on failure it is not marked, so a re-run sends it.\n\n### Setup\n1. Set `NODE_FUNCTION_ALLOW_BUILTIN=crypto` on your n8n instance and restart it.\n2. Fill in **Config**: Shopify webhook signing secret, warehouse and from addresses, Slack webhook URL, mapping options.\n3. Add your SMTP credential to **Email pick list**.\n4. Click **Test workflow** to run the sample order.\n5. In Shopify admin > Settings > Notifications > Webhooks, add **Order payment** (JSON) pointing at the production URL of **Order paid (Shopify)**. Activate.\n\n### Customization\n- Add skip tags or line properties in **Config**.\n\nNo credentials are included.",
     "height": 920,
     "width": 780,
-    "color": 7
+    "color": 1
    },
    "id": "03c074c1-ecb9-5d20-b484-759a3c46136a",
    "name": "Note 1",
@@ -420,10 +420,10 @@
   },
   {
    "parameters": {
-    "content": "### 1 · Receive and verify\nThe webhook takes the paid order; **Test with sample data** feeds a sample order instead. **Verify signature** rejects anything Shopify did not sign and sends it to the failure alert.",
+    "content": "## Receive and verify\nThe webhook takes the paid order; **Test with sample data** feeds a sample order instead. **Verify signature** rejects anything Shopify did not sign and sends it to the failure alert.",
     "height": 720,
     "width": 1040,
-    "color": 5
+    "color": 7
    },
    "id": "b64e0e34-1c2f-5c06-9103-29087886cae4",
    "name": "Note 2",
@@ -436,10 +436,10 @@
   },
   {
    "parameters": {
-    "content": "### 2 · Map, dedupe, filter\n**Map order** applies your Config mapping (SKU field, skip tags, line properties, shipping names). **Already sent?** drops orders already sent. **Ship it?** skips tagged orders and orders with nothing to ship, and says so in Slack.",
+    "content": "## Map, dedupe, filter\n**Map order** applies your Config mapping (SKU field, skip tags, line properties, shipping names). **Already sent?** drops orders already sent. **Ship it?** skips tagged orders and orders with nothing to ship, and says so in Slack.",
     "height": 520,
     "width": 1040,
-    "color": 4
+    "color": 7
    },
    "id": "f90c0b23-68a1-5698-9591-5a3b5b6a6a3e",
    "name": "Note 3",
@@ -452,10 +452,10 @@
   },
   {
    "parameters": {
-    "content": "### 3 · Send, with retries\n**Email pick list** retries 3 times, 5 s apart. On success the order is marked sent and Slack is told; if it still fails, the error goes to the alert and the order is not marked, so a re-run sends it.",
+    "content": "## Send, with retries\n**Email pick list** retries 3 times, 5 s apart. On success the order is marked sent and Slack is told; if it still fails, the error goes to the alert and the order is not marked, so a re-run sends it.",
     "height": 520,
     "width": 780,
-    "color": 6
+    "color": 7
    },
    "id": "cb5869f2-cfd8-5c0c-a538-059eced716ff",
    "name": "Note 4",
@@ -468,10 +468,10 @@
   },
   {
    "parameters": {
-    "content": "### 4 · Failure alert\nOne Slack message names the step that failed, the order and the reason.",
+    "content": "## Failure alert\nOne Slack message names the step that failed, the order and the reason.",
     "height": 320,
     "width": 520,
-    "color": 3
+    "color": 7
    },
    "id": "de415a6d-2095-5fde-bb1e-7fa0a6d81724",
    "name": "Note 5",

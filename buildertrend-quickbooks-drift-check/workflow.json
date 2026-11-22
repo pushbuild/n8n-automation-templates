@@ -569,10 +569,10 @@
   },
   {
    "parameters": {
-    "content": "## Buildertrend → QuickBooks drift check\nEvery morning this compares the bills in your latest Buildertrend export with the bills in QuickBooks Online and emails what doesn't match: bills missing on either side, amounts typed differently, bills on the wrong job, and job totals that disagree. Problems already reported are marked so new ones stand out.\n\n**You need:** n8n · QuickBooks Online (Intuit developer app, OAuth2) · a Google Drive folder · an SMTP account for email\n\n**Setup**\n1. Export your Buildertrend bills report as CSV into one Google Drive folder (Buildertrend has no public API, so the export is the source).\n2. Add a **Google Drive OAuth2** and a **QuickBooks Online OAuth2** credential and select them on the three API steps; add **SMTP** on the two email steps.\n3. Fill in **Config**: folder id, `realm_id`, emails, and the `field_*` names to match your export's column headers.\n4. Click **Test workflow** to see the report with sample data, then activate.\n\nNo credentials are included. Guide: pushbuild.com/guides/buildertrend-quickbooks-reconciliation.html",
+    "content": "## Check Buildertrend bills against QuickBooks Online every morning\nFor builders and remodelers who enter bills in Buildertrend and keep the books in QuickBooks Online. Every morning this compares the two and emails what doesn't match.\n\n### How it works\n1. **Find latest export** picks the newest Buildertrend bills CSV in a Google Drive folder and warns when it is older than `max_export_age_hours`.\n2. **Parse export** reads the columns named in **Config**.\n3. **Get QuickBooks bills** reads the same period from QuickBooks Online.\n4. **Compare** matches by bill number and vendor, then by vendor, amount and date, and checks job totals.\n5. **Write report** lists bills missing on either side, amounts that differ, bills on the wrong job and job totals out of step. Problems already reported are marked so new ones stand out.\n\n### Setup\n1. Save your Buildertrend bills report as CSV into one Google Drive folder (Buildertrend has no public API, so the export is the source).\n2. Add Google Drive OAuth2 and QuickBooks Online OAuth2 credentials on the API steps, and SMTP on the two email steps.\n3. Fill in **Config**: folder id, `realm_id`, emails and the `field_*` column names.\n4. Click **Test workflow** to see the report with sample data, then activate.\n\n### Customization\n- Change the tolerances in **Config**, or set `send_when_clean` to get an email every day.\n\nNo credentials are included.",
     "height": 616,
     "width": 1000,
-    "color": 7
+    "color": 1
    },
    "id": "f8a359b7-5e98-56f8-bbc9-b97d3bb456b9",
    "name": "Note 1",
@@ -585,10 +585,10 @@
   },
   {
    "parameters": {
-    "content": "### 1 · Latest export\nFinds the newest CSV in the folder and warns if it is older than `max_export_age_hours`. Column names are read from Config.",
+    "content": "## Latest export\nFinds the newest CSV in the folder and warns if it is older than `max_export_age_hours`. Column names are read from Config.",
     "height": 719,
     "width": 1520.0,
-    "color": 4
+    "color": 7
    },
    "id": "5d7d91a9-3343-56bc-b635-e1fd51789ede",
    "name": "Note 2",
@@ -601,10 +601,10 @@
   },
   {
    "parameters": {
-    "content": "### 2 · Compare\nMatches by bill number and vendor, then by vendor, amount and date. Tolerances are in Config. Job totals are compared too.",
+    "content": "## Compare\nMatches by bill number and vendor, then by vendor, amount and date. Tolerances are in Config. Job totals are compared too.",
     "height": 719,
     "width": 1000.0,
-    "color": 4
+    "color": 7
    },
    "id": "68aa5c56-4284-539b-a0c1-f4b50408dd22",
    "name": "Note 3",
@@ -617,10 +617,10 @@
   },
   {
    "parameters": {
-    "content": "### 3 · Report and alerts\nOne plain email per morning, only when something needs a look (or always, with `send_when_clean`). Any failed step emails the reason.",
+    "content": "## Report and alerts\nOne plain email per morning, only when something needs a look (or always, with `send_when_clean`). Any failed step emails the reason.",
     "height": 961,
     "width": 480.0,
-    "color": 4
+    "color": 7
    },
    "id": "fae0515c-7dfa-530c-8d1d-5844d4b4cd0c",
    "name": "Note 4",
