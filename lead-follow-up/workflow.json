@@ -1,5 +1,5 @@
 {
-  "name": "Lead follow-up: score, reply, CRM, alert (Pushbuild template)",
+  "name": "Score, reply to and route website leads with OpenAI, HubSpot and Slack",
   "nodes": [
     {
       "parameters": {
@@ -209,10 +209,10 @@
     },
     {
       "parameters": {
-        "content": "## Lead follow-up: score, reply, CRM, alert\nEvery new website-form lead gets an instant reply, is scored 1\u201310 by OpenAI, upserted into HubSpot, and \u2014 if it's hot \u2014 pushed to Slack.\n\n**What you need:** n8n \u2022 OpenAI API key \u2022 HubSpot private-app token \u2022 SMTP \u2022 Slack incoming webhook\n\n**Setup**\n1. Open **Config** \u2192 set business name, from-address, booking link, Slack URL, hot-lead score.\n2. Header-Auth credential `OpenAI` (`Authorization: Bearer <key>`) on **Score lead**.\n3. Header-Auth credential `HubSpot` (`Authorization: Bearer <token>`) on **Upsert contact**.\n4. Add your SMTP credential to **Reply to lead**.\n5. Point your form's webhook at **New lead**'s production URL, activate, send a test.\n\nNo credentials are bundled \u2014 every `REPLACE_ME` must be set before activating.\nGuide: pushbuild.com/guides/lead-follow-up-automation.html",
-        "height": 320,
+        "content": "## Score, reply to and route website leads with OpenAI, HubSpot and Slack\nFor small teams who lose leads because nobody answers the contact form quickly. Every new form lead gets an instant reply, a 1-10 fit score from OpenAI, a HubSpot contact, and a Slack alert when the score is high.\n\n### How it works\n1. **New lead (webhook)** receives your form's POST; **Normalize lead** maps it to name, email, phone, company and message.\n2. **Score lead (OpenAI)** returns a score, a reason and a one-line summary.\n3. **Reply to lead** sends the thank-you email with your booking link.\n4. **Upsert contact (HubSpot)** creates or updates the contact by email.\n5. **Hot lead?** posts the lead and the reason to Slack when the score reaches your threshold.\n\n### Setup\n1. Fill in **Config**: business name, from-address, booking link, Slack webhook URL, hot-lead score.\n2. Add a Header Auth credential for OpenAI (`Authorization: Bearer <key>`) on **Score lead (OpenAI)**.\n3. Add a Header Auth credential for a HubSpot private app (`Authorization: Bearer <token>`, contacts read/write) on **Upsert contact (HubSpot)**.\n4. Add your SMTP credential to **Reply to lead**.\n5. Point your form at the production URL of **New lead (webhook)**, send a test lead, then activate.\n\n### Customization\n- Change the scoring prompt in **Score lead (OpenAI)** to describe your ideal customer.\n- Map extra form fields in **Normalize lead**.\n- Swap HubSpot for your CRM's node or API.\n\nNo credentials are included; set every `REPLACE_ME` value first.",
+        "height": 626,
         "width": 1640,
-        "color": 7
+        "color": 1
       },
       "id": "51514ac1-c017-4e3b-af98-56e67efcbffa",
       "name": "Sticky Note 3ba513",
@@ -225,10 +225,10 @@
     },
     {
       "parameters": {
-        "content": "### 1 \u00b7 Receive & normalize\nWebhook takes the form POST; **Config** holds your settings; **Normalize lead** maps form fields to name/email/phone/company/message.",
+        "content": "## Receive & normalize\nWebhook takes the form POST; **Config** holds your settings; **Normalize lead** maps form fields to name/email/phone/company/message.",
         "height": 180,
         "width": 660,
-        "color": 5
+        "color": 7
       },
       "id": "057247da-3cae-47e1-af30-7f870fde4a61",
       "name": "Sticky Note 5da97d",
@@ -241,10 +241,10 @@
     },
     {
       "parameters": {
-        "content": "### 2 \u00b7 Score with OpenAI\nAsks OpenAI for a 1\u201310 fit score, a reason and a one-line summary.",
+        "content": "## Score with OpenAI\nAsks OpenAI for a 1–10 fit score, a reason and a one-line summary.",
         "height": 180,
         "width": 420,
-        "color": 4
+        "color": 7
       },
       "id": "792a75c8-4382-404d-b44c-ef7ea131d7b2",
       "name": "Sticky Note f12574",
@@ -257,10 +257,10 @@
     },
     {
       "parameters": {
-        "content": "### 3 \u00b7 Reply, CRM & alert\nSends the thank-you email, upserts the HubSpot contact, and Slacks the sales team when the score clears your threshold.",
+        "content": "## Reply, CRM & alert\nSends the thank-you email, upserts the HubSpot contact, and Slacks the sales team when the score clears your threshold.",
         "height": 180,
         "width": 680,
-        "color": 6
+        "color": 7
       },
       "id": "a55b17f1-bac3-467b-8fc8-1121c6c6c57a",
       "name": "Sticky Note 36f1f7",

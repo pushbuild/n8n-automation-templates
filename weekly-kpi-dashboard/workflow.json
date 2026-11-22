@@ -733,10 +733,10 @@
   },
   {
    "parameters": {
-    "content": "## Weekly numbers dashboard\nEvery Monday this reads last week's numbers from HubSpot (new deals, won deals, open pipeline), QuickBooks Online (invoiced, payments received, unpaid and overdue) and Stripe (card payments, refunds, failed payments), adds one row to a Google Sheets tab, and emails a summary with the change on the week before.\n\n**You need:** n8n · any of HubSpot (private app token), QuickBooks Online (OAuth2), Stripe (secret key) · a Google Sheet · SMTP\n\n**Setup**\n1. Make a Google Sheet with a tab named `Weekly KPIs` and the header row from the README.\n2. Add credentials to the steps of the sources you use, and set `use_*` to `false` for the ones you don't.\n3. Fill in **Config**: `realm_id`, timezone, currency, emails.\n4. Click **Test workflow** to see the row and the email with sample data, then activate.\n\nNo credentials are included.",
-    "height": 574,
+    "content": "## Log weekly sales numbers from HubSpot, QuickBooks and Stripe to Google Sheets\nFor owners who want last week's numbers in one place every Monday without opening three apps.\n\n### How it works\n1. Every Monday at 7am, **Last week** works out the dates.\n2. It reads HubSpot (new deals, won deals, open pipeline), QuickBooks Online (invoiced, payments received, unpaid and overdue) and Stripe (card payments, refunds, failed payments). Each source is optional.\n3. **Compare with last week** reads earlier rows and works out the change.\n4. **Save to sheet** writes one row per week (a re-run updates that week's row) and **Email the summary** sends the numbers.\n5. A source that fails is named in the email; the other numbers still go out.\n\n### Setup\n1. Make a Google Sheet with a tab named `Weekly KPIs` and the header row listed in the README.\n2. Add credentials for the sources you use (HubSpot private app token, QuickBooks Online OAuth2, Stripe secret key as Header Auth), and set `use_*` to `false` for the rest.\n3. Fill in **Config**: `realm_id`, timezone, currency, emails.\n4. Add Google Sheets and SMTP credentials.\n5. Click **Test workflow** to see the row and the email with sample data, then activate.\n\n### Customization\n- Add a metric by adding a request and a line in **Work out the numbers**.\n\nNo credentials are included.",
+    "height": 582,
     "width": 1000,
-    "color": 7
+    "color": 1
    },
    "id": "701853f9-5b67-5396-9ca1-f9b9d66beb59",
    "name": "Note 1",
@@ -749,10 +749,10 @@
   },
   {
    "parameters": {
-    "content": "### 1 · Read the week\nEach source is optional. A source that fails is named in the email, and the other numbers still go out.",
+    "content": "## Read the week\nEach source is optional. A source that fails is named in the email, and the other numbers still go out.",
     "height": 719,
     "width": 2560.0,
-    "color": 4
+    "color": 7
    },
    "id": "583b9727-0106-5a8e-a98e-a408775892f2",
    "name": "Note 2",
@@ -765,10 +765,10 @@
   },
   {
    "parameters": {
-    "content": "### 2 · Sheet and email\nOne row per week (re-running a week updates its row), compared with the previous week.",
+    "content": "## Sheet and email\nOne row per week (re-running a week updates its row), compared with the previous week.",
     "height": 919,
     "width": 1520.0,
-    "color": 4
+    "color": 7
    },
    "id": "db3085ae-26b1-57c7-97c7-d56ddd7ae688",
    "name": "Note 3",

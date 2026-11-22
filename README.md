@@ -13,7 +13,7 @@ Importable [n8n](https://n8n.io) workflows for jobs most small businesses repeat
 | [Email attachment to Google Sheet](document-processing/) | Reads PDF invoices and documents that arrive by email, pulls out the fields you choose with OpenAI, checks the totals, and adds a row to a Google Sheet. | [Document processing](https://pushbuild.com/guides/document-processing.html) |
 | [Shopify paid order to fulfilment notice](shopify-order-fulfilment/) | When a Shopify order is paid, this workflow checks Shopify's signature, builds a pick list with SKUs, quantities, ship-to address and shipping method, emails it to your warehouse or 3PL, and posts a note to Slack. | [Shopify automation](https://pushbuild.com/guides/shopify-automation.html) |
 | [Zapier to n8n migration starter](zapier-to-n8n-starter/) | A starting point for moving Zaps to n8n: a workflow laid out like a typical Zap (Catch Hook, Formatter, Filter, Action), an error alert workflow so failures reach you, and an inventory sheet for listing every Zap before you move any of them. | [Zapier vs Make vs n8n](https://pushbuild.com/compare/zapier-vs-make-vs-n8n.html) |
-| [Google Sheet to Postgres](spreadsheet-to-database/) | Moves a Google Sheet that has become your database into Postgres, every hour. | [Spreadsheet vs database app](https://pushbuild.com/compare/spreadsheet-vs-database-app.html) |
+| [Google Sheet to Postgres sync](spreadsheet-to-database/) | Keeps Postgres in step with a Google Sheet that has become your database: validates rows, writes only what changed, marks removed rows deleted with a safety cap, logs every run and reports rejected rows to Slack. | [Spreadsheet vs database app](https://pushbuild.com/compare/spreadsheet-vs-database-app.html) |
 
 ## How to use
 
@@ -21,7 +21,7 @@ Importable [n8n](https://n8n.io) workflows for jobs most small businesses repeat
 2. In n8n, open **Workflows → Import from file** and choose the `workflow.json`.
 3. Follow that folder's README to add your own credentials and settings.
 
-Import-tested on n8n 1.70; the AI lead qualifier, silent failure monitor, Buildertrend drift check and weekly numbers dashboard were tested on n8n 1.110. Older instances may need node versions adjusted.
+Import-tested on n8n 1.70; the AI lead qualifier, silent failure monitor, Buildertrend drift check, weekly numbers dashboard and Google Sheet to Postgres sync were tested on n8n 1.110. Older instances may need node versions adjusted.
 
 ## Want one set up for you?
 

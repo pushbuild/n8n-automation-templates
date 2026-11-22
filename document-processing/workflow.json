@@ -1,5 +1,5 @@
 {
-  "name": "Email attachment to Google Sheet: read invoices and documents (Pushbuild template)",
+  "name": "Read PDF invoices from email into Google Sheets with OpenAI",
   "nodes": [
     {
       "parameters": {
@@ -139,6 +139,70 @@
       "position": [
         1540,
         280
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Read PDF invoices from email into Google Sheets with OpenAI\nFor bookkeepers and small offices that retype supplier invoices from an inbox into a spreadsheet.\n\n### How it works\n1. **New email (IMAP)** watches a mailbox, such as invoices@, and downloads attachments.\n2. **Has PDF?** skips emails without a PDF as the first attachment.\n3. **Extract PDF text** turns the PDF into text.\n4. **Extract fields (OpenAI)** asks for supplier, invoice number, dates, subtotal, tax, total and currency as JSON.\n5. **Check and flag** marks the row `CHECK` when the model is unsure or subtotal plus tax does not equal the total.\n6. **Append to sheet** adds the row to the `Documents` tab.\n\n### Setup\n1. Add your IMAP credential to **New email (IMAP)**.\n2. Create a Header Auth credential for OpenAI (`Authorization: Bearer <key>`) and select it on **Extract fields (OpenAI)**.\n3. Create a Google Sheet with a `Documents` tab and the headers: received, from, subject, file, supplier, invoice_number, invoice_date, due_date, subtotal, tax, total, currency, review.\n4. Paste the sheet URL into **Append to sheet** and add your Google Sheets credential.\n5. Send a test email with a PDF invoice, check the row, then activate.\n\n### Customization\n- Change the field list in **Build extraction request** for orders, statements or applications.\n- Scanned PDFs need an OCR step before extraction.\n\nNo credentials are included.",
+        "height": 626,
+        "width": 760,
+        "color": 1
+      },
+      "id": "fd8dc249-a24c-45e6-8a83-eb1462e3e486",
+      "name": "Note ec7962",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Receive the PDF\nOnly emails with a PDF as the first attachment continue.",
+        "height": 340,
+        "width": 860,
+        "color": 7
+      },
+      "id": "f1c005c6-82b7-4b9f-b265-a44e324d1abf",
+      "name": "Note e85688",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Extract and check\nOpenAI returns the fields as JSON; rows where totals do not add up are marked CHECK.",
+        "height": 320,
+        "width": 640,
+        "color": 7
+      },
+      "id": "fc006cbd-6557-4c26-b2f7-01fd71cb77a5",
+      "name": "Note 55548d",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        840,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Save\nOne row per document in the Documents tab.",
+        "height": 320,
+        "width": 200,
+        "color": 7
+      },
+      "id": "f27e4b68-9f49-4973-82ea-e38ecdf04d4b",
+      "name": "Note aafe33",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        100
       ]
     }
   ],

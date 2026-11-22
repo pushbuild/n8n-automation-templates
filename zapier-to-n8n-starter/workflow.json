@@ -1,5 +1,5 @@
 {
-  "name": "Zap replacement starter: hook, filter, format, action (Pushbuild template)",
+  "name": "Zap replacement starter: webhook, formatter, filter and action",
   "nodes": [
     {
       "parameters": {
@@ -110,6 +110,70 @@
       "position": [
         880,
         280
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Zap replacement starter: webhook, formatter, filter and action\nFor teams moving Zaps to n8n one at a time. This workflow is laid out like a typical Zap so each step has an obvious n8n equivalent. Pair it with `error-alert.json` so failures reach you, and `zap-inventory.csv` to list every Zap before you move any.\n\n### How it works\n1. **Catch hook (was: Webhooks by Zapier)** receives the same POST your Zap did.\n2. **Formatter (was: Formatter by Zapier)** cleans the fields: email case, name case, amounts and dates.\n3. **Filter (was: Filter by Zapier)** stops items with no email.\n4. **Action (any API)** sends the cleaned record to the URL in **Config**.\n\n### Setup\n1. Import `error-alert.json`, set its Slack webhook URL and activate it.\n2. Import this workflow and choose the error alert as its **Error workflow** in workflow settings.\n3. Fill in **Config**: `action_url`.\n4. Replace the Formatter code and Filter rule with your Zap's steps, and point the action at the app's n8n node or API.\n5. Run the Zap and this workflow side by side for a few days, compare, then turn the Zap off.\n\n### Customization\n- Zapier to n8n: Paths > Switch, Delay > Wait, Looping > Loop Over Items, Storage > Data Table, Code by Zapier > Code.\n\nNo credentials are included.",
+        "height": 560,
+        "width": 760,
+        "color": 1
+      },
+      "id": "2812da80-b201-4a1d-aaf2-835e612d5c6b",
+      "name": "Note 7510d1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Trigger and settings\nSame POST your Zap received; settings live in Config.",
+        "height": 320,
+        "width": 420,
+        "color": 7
+      },
+      "id": "fb3224a9-2d5e-42c2-b2d0-1ca16c82f242",
+      "name": "Note 7cc8b3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Formatter and filter\nEach Formatter or Filter step from the Zap becomes a line here.",
+        "height": 320,
+        "width": 420,
+        "color": 7
+      },
+      "id": "b4faba9d-8278-42a3-9068-c20c53d1b635",
+      "name": "Note f84625",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        400,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Action\nReplace with the app's n8n node when one exists.",
+        "height": 320,
+        "width": 200,
+        "color": 7
+      },
+      "id": "df9e95fe-7bae-4b34-b934-55c40b955ffe",
+      "name": "Note ba19c6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        840,
+        100
       ]
     }
   ],

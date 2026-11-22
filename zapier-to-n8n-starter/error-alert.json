@@ -1,5 +1,5 @@
 {
-  "name": "Error alert for all workflows (Pushbuild template)",
+  "name": "Error alert to Slack for every workflow",
   "nodes": [
     {
       "parameters": {},
@@ -28,6 +28,22 @@
       "position": [
         220,
         300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Error alert for every workflow\nPosts to Slack whenever any workflow that uses this as its error workflow fails, with the workflow name, the step that failed, the error and a link to the run.\n\n### How it works\n1. **When any workflow fails** (Error Trigger) fires on a failed production run.\n2. **Alert (Slack)** posts one message to your channel.\n\n### Setup\n1. Create a Slack incoming webhook and paste its URL into **Alert (Slack)**.\n2. Activate this workflow.\n3. In each workflow you want covered, open Settings > Error workflow and choose this one.\n\n### Customization\n- Add an email or SMS step after **Alert (Slack)**.\n- Filter out workflows you don't want alerts for with an IF step.\n\nNo credentials are included.",
+        "height": 560,
+        "width": 760,
+        "color": 1
+      },
+      "id": "6e334145-b11f-4a67-b060-4afe40d842f5",
+      "name": "Note 544b96",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        60
       ]
     }
   ],
