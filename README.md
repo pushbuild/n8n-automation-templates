@@ -4,6 +4,7 @@ Importable [n8n](https://n8n.io) workflows for jobs most small businesses repeat
 
 | Template | What it does | Guide |
 |---|---|---|
+| [Error alert email](error-alert-email/) | Emails you the workflow, failed step, error and a link to the run whenever any n8n workflow fails. Two nodes: Error Trigger and Gmail. | [n8n silent failures](https://pushbuild.com/guides/n8n-silent-failures.html) |
 | [Silent failure monitor](silent-failure-monitor/) | Watches your n8n workflows and alerts you on Slack and by email when a run succeeds but does nothing, a schedule is missed, an expected record is missing, or a workflow is switched off. | [n8n silent failures](https://pushbuild.com/guides/n8n-silent-failures.html) |
 | [Buildertrend to QuickBooks drift check](buildertrend-quickbooks-drift-check/) | Compares your Buildertrend bills export with QuickBooks Online every morning and emails bills missing on either side, amounts that differ, bills on the wrong job and job totals out of step. | [Buildertrend and QuickBooks reconciliation](https://pushbuild.com/guides/buildertrend-quickbooks-reconciliation.html) |
 | [Weekly numbers dashboard](weekly-kpi-dashboard/) | Every Monday, last week's numbers from HubSpot, QuickBooks Online and Stripe in one Google Sheets row, with an emailed summary of the change on the week before. | [Weekly business dashboard](https://pushbuild.com/guides/weekly-business-dashboard.html) |
