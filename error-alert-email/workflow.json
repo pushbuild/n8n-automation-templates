@@ -1,0 +1,47 @@
+{
+  "name": "Error alert",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "sendTo": "you@yourbusiness.com",
+        "subject": "=n8n workflow failed: {{ $json.workflow.name }}",
+        "emailType": "text",
+        "message": "=Workflow: {{ $json.workflow.name }}\nFailed at node: {{ $json.execution.lastNodeExecuted }}\nError: {{ $json.execution.error.message }}\nOpen the execution: {{ $json.execution.url }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        144,
+        0
+      ],
+      "name": "Send a message"
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
